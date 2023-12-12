@@ -42,8 +42,8 @@ const forSlideFromLeft = ({ current, layouts, next }) => {
 const AppNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Home" component={Home} options={{ cardStyleInterpolator: forSlideFromLeft }} />
       <Stack.Screen name="Add" component={Add} />
-      <Stack.Screen name="Home" component={Home} options={{cardStyleInterpolator: forSlideFromLeft }}/>
       <Stack.Screen name="AddBreakpoint" component={AddBreakpoint} />
       <Stack.Screen name="Vibration" component={Vibration} options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }} />
     </Stack.Navigator>

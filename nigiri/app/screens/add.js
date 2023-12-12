@@ -25,7 +25,7 @@ const Add = () => {
     // ========== Time Wheel Picker ========== //
     const Hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
     const Minutes = Array.from({ length: 60 }, (_, index) => index);
-    const Seconds = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+    const Seconds = Array.from({ length: 60 }, (_, index) => index);
     const [duration, setDuration] = useState({
         hour: 0,
         minute: 1,
@@ -59,7 +59,6 @@ const Add = () => {
                 vibration: routeVibration
             }));
         }
-        setNewTimer
     }, [routeVibration]);
 
     // ========== Navigation ========== //
@@ -85,7 +84,21 @@ const Add = () => {
         });
         navigation.navigate('Home');
     }
+    const routeBreakPoints = route.params?.savedBreakpoints;
+    useEffect(() => {
+        if (routeBreakPoints) {
+            setNewTimer(prevTimer => ({
+                ...prevTimer,
+                breakPoints: routeBreakPoints
+            }));
+        }
+        console.log(routeBreakPoints);
+    }, [routeBreakPoints]);
     const handleNext = () => {
+        if(newTimer.duration === 0){
+            alert('Please set a duration for the timer.'); 
+            return;
+        }
         if(newTimer.title === ''){
             setNewTimer(prevTimer => ({
                 ...prevTimer,
@@ -94,7 +107,6 @@ const Add = () => {
         }
         navigation.navigate('AddBreakpoint', { newTimer });
     }
-
 
     return (
         <View style={styles.addContainer}>
