@@ -8,6 +8,6 @@ export default{
     Gray1: '#eeeeee',
     Gray2: '#dddddd',
     Gray3: '#cccccc',
-    darkGray: '#aaaaaa',
+    darkGray: '#999999',
     lightRed: '#ffe9e7',
 }

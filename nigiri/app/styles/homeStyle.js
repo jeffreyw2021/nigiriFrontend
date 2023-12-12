@@ -44,6 +44,21 @@ const styles = StyleSheet.create({
         bottom: 70
     },
 
+    topButtonContainer:{
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: 65,
+        paddingBottom: 10,
+        columnGap: 20,
+        paddingHorizontal: 4,
+    },
+    topButtonText:{
+        color: colors.black,
+        fontSize: 18,
+        fontWeight: '600',
+    },
     timersContainer: {
         width: '100%',
         height: height,
@@ -51,7 +66,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     timersList: {
-        paddingTop: 80,
+        paddingTop: 10,
         width: '100%',
         flexDirection: 'row',
         columnGap: 10,
@@ -67,6 +82,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         borderRadius: 20,
         padding: 15,
+        borderBox: 'box-sizing',
     },
     timerDuration: {
         fontSize: 34,

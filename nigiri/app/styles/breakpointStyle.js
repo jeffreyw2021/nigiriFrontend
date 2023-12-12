@@ -58,6 +58,7 @@ const styles = StyleSheet.create({
         paddingLeft: 50,
     },
     breakPointBlock:{
+        height: 60,
         padding: 12,
         alignItems:'flex-start',
         justifyContent: 'center',
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
     },
     breakPointIndicator:{
         height: 20,
-        backgroundColor: colors.red,
+        backgroundColor: colors.black,
         paddingVertical: 2,
         paddingHorizontal: 6,
         borderRadius: 20,

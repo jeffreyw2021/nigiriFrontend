@@ -1,11 +1,11 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, PanResponder } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles/homeStyle';
 import colors from '../styles/colors';
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faPlus, faTrash, faTrashCan } from "@fortawesome/free-solid-svg-icons";
 
 const Home = () => {
     const navigation = useNavigation();
@@ -36,6 +36,32 @@ const Home = () => {
         return `${formattedMinutes}:${formattedSeconds}`;
     };
 
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [selectedTimers, setSelectedTimers] = useState([]);
+
+    const deleteTimers = async () => {
+        try {
+            const newTimers = timers.filter(timer => !selectedTimers.includes(timer.createdAt));
+            await AsyncStorage.setItem('timers', JSON.stringify(newTimers));
+            setTimers(newTimers);
+            setSelectedTimers([]);
+        } catch (error) {
+            console.error('Error accessing AsyncStorage:', error);
+        }
+    };
+    const editToggle = () => {
+        setSelectedTimers([]);
+        setIsEditMode(!isEditMode);
+    }
+    
+    const [detailTimer, setDetailTimer] = useState(null);
+    useEffect(() => {
+        if (detailTimer) {
+            console.log("sending detail timer to Detail screen:", detailTimer);
+            navigation.navigate('Detail', { timer: detailTimer });
+        }
+    }, [detailTimer]);
+
     return (
         <View style={styles.container}>
             {timers.length === 0 ? (
@@ -46,13 +72,43 @@ const Home = () => {
                 </View>
             ) : (
                 <View style={styles.timersContainer}>
+                    <View style={styles.topButtonContainer}>
+                        {isEditMode && (
+                            <TouchableOpacity onPress={deleteTimers}>
+                                <FontAwesomeIcon icon={faTrash} size={20} color={colors.black} />
+                            </TouchableOpacity>
+                        )}
+                        <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
+                            <TouchableOpacity onPress={editToggle}>
+                                {!isEditMode ? (
+                                    <Text style={styles.topButtonText}>Edit</Text>
+                                ) : (
+                                    <Text style={styles.topButtonText}>Done</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                     <ScrollView contentContainerStyle={styles.timersList} showsVerticalScrollIndicator={false}>
-                        {[...timers] 
+                        {[...timers]
                             .sort((a, b) => b.createdAt - a.createdAt)
                             .map((timer, index) => (
-                                <TouchableOpacity key={index} style={styles.timerBlock}>
-                                    <Text style={styles.timerDuration}>{formatDuration(timer.duration)}</Text>
-                                    <Text style={styles.timerTitle} numberOfLines={1} ellipsizeMode='tail'>
+                                <TouchableOpacity key={index} style={[styles.timerBlock, (isEditMode && selectedTimers.includes(timer.createdAt)) && { backgroundColor: colors.Gray3 }]}
+                                    onPress={() => {
+                                        if (isEditMode) {
+                                            if (selectedTimers.includes(timer.createdAt)) {
+                                                setSelectedTimers(selectedTimers.filter(createdAt => createdAt !== timer.createdAt));
+                                            } else {
+                                                setSelectedTimers([...selectedTimers, timer.createdAt]);
+                                            }
+                                        }else{
+                                            console.log('setting detail timer:', timer);
+                                            setDetailTimer(timer);
+                                        }
+                                    }}>
+                                    <Text style={[styles.timerDuration, isEditMode && { color: colors.darkGray }]}>
+                                        {formatDuration(timer.duration)}
+                                    </Text>
+                                    <Text style={[styles.timerTitle, isEditMode && { color: colors.darkGray }]} numberOfLines={1} ellipsizeMode='tail'>
                                         {timer.title}
                                     </Text>
                                 </TouchableOpacity>

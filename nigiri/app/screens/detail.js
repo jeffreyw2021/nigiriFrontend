@@ -10,7 +10,7 @@ import InsetShadow from 'react-native-inset-shadow';
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faAngleDown, faPlus, faXmark } from "@fortawesome/free-solid-svg-icons";
 
-const AddBreakpoint = () => {
+const Detail = () => {
 
     // ========== Initiation ========== //
     const navigation = useNavigation();
@@ -40,7 +40,7 @@ const AddBreakpoint = () => {
         };
         getTimers();
     }, []);
-    const routeNewTimer = route.params?.newTimer;
+    const routeNewTimer = route.params?.timer;
     useEffect(() => {
         console.log('routeNewTimer:', routeNewTimer);
         if (routeNewTimer) {
@@ -57,10 +57,6 @@ const AddBreakpoint = () => {
                     createdAt: Date.now(),
                 }));
             }
-            // setNewTimer(prevTimer => ({
-            //     ...routeNewTimer,
-            //     createdAt: Date.now(),
-            // }));
         }
     }, [routeNewTimer]);
 
@@ -133,7 +129,7 @@ const AddBreakpoint = () => {
     const handleBack = () => {
         // Filter out breakpoints with a duration of 0
         const savedBreakpoints = newTimer.breakPoints.filter(breakPoint => breakPoint.duration !== 0);
-        navigation.navigate('Add', { savedBreakpoints });
+        navigation.navigate('Home');
     }
 
     // ========== Breakpoints ========== //
@@ -291,22 +287,6 @@ const AddBreakpoint = () => {
         });
         navigation.navigate('Home');
     }
-    useEffect(() => {
-        console.log('timers:', timers);
-
-        // Iterate over each timer in the timers array
-        timers.forEach((timer, index) => {
-            console.log(`Timer ${index + 1}:`, timer);
-
-            // Check if the timer has breakPoints and iterate over them
-            if (timer.breakPoints && Array.isArray(timer.breakPoints)) {
-                timer.breakPoints.forEach((breakpoint, bpIndex) => {
-                    console.log(`Timer ${index + 1} - Breakpoint ${bpIndex + 1}:`, JSON.stringify(breakpoint));
-                });
-            }
-        });
-    }, [timers]);
-
 
     return (
         <View style={styles.container}>
@@ -331,7 +311,7 @@ const AddBreakpoint = () => {
                 ) : (
                     <View style={[styles.breakpointBodyContainer, { paddingBottom: 40, rowGap: 3 }]}>
                         {newTimer.breakPoints.map((breakpoint, index) => (
-                            <View key={index} style={styles.breakPointObject}>
+                            <View key={index} style={[styles.breakPointObject, { zIndex: newTimer.breakPoints.length - index }]}>
                                 <View style={styles.breakPointBlockContainer}>
                                     <TouchableOpacity style={[styles.breakPointBlock, editingBreakpoint === index && { backgroundColor: colors.lightRed }]} onPress={() => handleBreakpointClick(index)}>
                                         <Text style={[styles.breakPointText, editingBreakpoint === index && { color: colors.red }]}>{formatDuration(breakpoint.duration)}</Text>
@@ -344,11 +324,12 @@ const AddBreakpoint = () => {
                                         </Text>
                                     </View>
                                     <View style={styles.lineContainer}>
-                                        <DashedLine dashWidth={5} dashGap={5} dashColor={colors.red} />
+                                        <DashedLine dashWidth={5} dashGap={5} dashColor={colors.black} />
                                     </View>
                                 </View>
                             </View>
                         ))}
+
                         {editingBreakpoint === null && availableDuration !== 0 && (
                             <View style={styles.breakPointBlockContainer}>
                                 <TouchableOpacity
@@ -508,4 +489,4 @@ const AddBreakpoint = () => {
     );
 };
 
-export default AddBreakpoint;
+export default Detail;

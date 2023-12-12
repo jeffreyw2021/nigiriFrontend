@@ -5,6 +5,7 @@ import Home from '../screens/Home';
 import Add from '../screens/add';
 import Vibration from '../components/vibration';
 import AddBreakpoint from '../screens/addBreakpoint';
+import Detail from '../screens/detail';
 
 const Stack = createStackNavigator();
 
@@ -46,6 +47,7 @@ const AppNavigator = () => {
       <Stack.Screen name="Add" component={Add} />
       <Stack.Screen name="AddBreakpoint" component={AddBreakpoint} />
       <Stack.Screen name="Vibration" component={Vibration} options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }} />
+      <Stack.Screen name="Detail" component={Detail} />
     </Stack.Navigator>
   );
 };
