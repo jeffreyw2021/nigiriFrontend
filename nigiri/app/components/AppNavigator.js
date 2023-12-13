@@ -6,6 +6,8 @@ import Add from '../screens/add';
 import Vibration from '../components/vibration';
 import AddBreakpoint from '../screens/addBreakpoint';
 import Detail from '../screens/detail';
+import Edit from '../screens/edit';
+import { NavigationContainer } from '@react-navigation/native';
 
 const Stack = createStackNavigator();
 
@@ -42,13 +44,16 @@ const forSlideFromLeft = ({ current, layouts, next }) => {
 
 const AppNavigator = () => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Home" component={Home} options={{ cardStyleInterpolator: forSlideFromLeft }} />
-      <Stack.Screen name="Add" component={Add} />
-      <Stack.Screen name="AddBreakpoint" component={AddBreakpoint} />
-      <Stack.Screen name="Vibration" component={Vibration} options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }} />
-      <Stack.Screen name="Detail" component={Detail} />
-    </Stack.Navigator>
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Home" component={Home} options={{ cardStyleInterpolator: forSlideFromLeft }} />
+        <Stack.Screen name="Add" component={Add} />
+        <Stack.Screen name="AddBreakpoint" component={AddBreakpoint} />
+        <Stack.Screen name="Vibration" component={Vibration} options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }} />
+        <Stack.Screen name="Detail" component={Detail} />
+        <Stack.Screen name="Edit" component={Edit} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 

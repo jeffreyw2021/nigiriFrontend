@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Vibration } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import colors from '../styles/colors';
-import styles from '../styles/breakpointStyle';
+import styles from '../styles/detailStyle';
 import DashedLine from '../components/dashedLine';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import WheelPickerExpo from 'react-native-wheel-picker-expo';
-import InsetShadow from 'react-native-inset-shadow';
+import vibrationPatterns from '../components/vibrationCollection';
+import Triangle from '../components/triangle';
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
-import { faAngleDown, faPlus, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faAngleLeft, faPlay, faPause, faStop, faForward, faRotateRight } from "@fortawesome/free-solid-svg-icons";
 
 const Detail = () => {
 
@@ -42,7 +42,6 @@ const Detail = () => {
     }, []);
     const routeNewTimer = route.params?.timer;
     useEffect(() => {
-        console.log('routeNewTimer:', routeNewTimer);
         if (routeNewTimer) {
             if (routeNewTimer.title === '') {
                 const newTitle = formatDuration(routeNewTimer.duration);
@@ -124,6 +123,19 @@ const Detail = () => {
             return `${hours} h ${minutes} min ${seconds} sec`;
         }
     };
+    const formatDurationToNumeric = (milliseconds) => {
+        let seconds = Math.floor((milliseconds / 1000) % 60);
+        let minutes = Math.floor((milliseconds / (1000 * 60)) % 60);
+        const hours = Math.floor((milliseconds / (1000 * 60 * 60)) % 24);
+
+        if (minutes < 10) {
+            minutes = '0' + minutes;
+        }
+        if (seconds < 10) {
+            seconds = '0' + seconds;
+        }
+        return `${hours}:${minutes}:${seconds}`;
+    };
 
     // ========== Navigation ========== //
     const handleBack = () => {
@@ -131,358 +143,367 @@ const Detail = () => {
         const savedBreakpoints = newTimer.breakPoints.filter(breakPoint => breakPoint.duration !== 0);
         navigation.navigate('Home');
     }
-
-    // ========== Breakpoints ========== //
-    const addNewBreakpoint = () => {
-        setNewTimer(prevTimer => {
-            const lastBreakpoint = prevTimer.breakPoints[prevTimer.breakPoints.length - 1];
-            const startAt = lastBreakpoint ? lastBreakpoint.endAt : 0;
-            const newBreakpoint = { startAt, duration: 0, endAt: startAt };
-
-            return {
-                ...prevTimer,
-                breakPoints: [...prevTimer.breakPoints, newBreakpoint],
-            };
-        });
-
-        calculateAndSetAvailableDuration(availableDuration);
-        setEditingBreakpoint(newTimer.breakPoints.length);
-    };
-
-    const [editingBreakpoint, setEditingBreakpoint] = useState(null);
-    const handleBreakpointClick = (index) => {
-        if (index === editingBreakpoint) {
-            setEditingBreakpoint(null);
-        } else {
-            setEditingBreakpoint(index);
-            const selectedBreakpointDuration = newTimer.breakPoints[index].duration;
-
-            const hour = Math.floor((selectedBreakpointDuration / (1000 * 60 * 60)) % 24);
-            const minute = Math.floor((selectedBreakpointDuration / (1000 * 60)) % 60);
-            const second = Math.floor((selectedBreakpointDuration / 1000) % 60);
-
-            setDuration({ hour, minute, second });
-
-            setSpinnerHourStartAt(Hours.findIndex(h => h === hour));
-            setSpinnerMinuteStartAt(Minutes.findIndex(m => m === minute));
-            setSpinnerSecondStartAt(Seconds.findIndex(s => s === second));
-        }
-    };
-    const handleCloseModal = () => {
-        setEditingBreakpoint(null);
-        setDuration({
-            hour: 0,
-            minute: 0,
-            second: 0,
-        });
-        if (newTimer.breakPoints.length > 0) {
-            for (let i = 0; i < newTimer.breakPoints.length; i++) {
-                const breakPoint = newTimer.breakPoints[i];
-                if (breakPoint.duration === 0) {
-                    newTimer.breakPoints.splice(i, 1);
-                }
-            }
-        }
+    const handleEdit = () => {
+        console.log('sending timer:', newTimer);
+        navigation.navigate('Edit', { timer: newTimer });
     }
-    useEffect(() => {
-        console.log('editingBreakpoint:', editingBreakpoint);
-    }, [editingBreakpoint]);
 
     // ========== Time Picker ========== //
-    const [Hours, setHours] = useState([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    const [Minutes, setMinutes] = useState(Array.from({ length: 60 }, (_, index) => index));
-    const [Seconds, setSeconds] = useState(Array.from({ length: 60 }, (_, index) => index));
-    const [duration, setDuration] = useState({
-        hour: 0,
-        minute: 0,
-        second: 0,
-    });
-    useEffect(() => {
-        if (editingBreakpoint !== null) {
-            const newDuration = duration.hour * 3600000 + duration.minute * 60000 + duration.second * 1000;
-            const newEndAt = newTimer.breakPoints[editingBreakpoint].startAt + newDuration;
-
-            setNewTimer(prevTimer => {
-                const updatedBreakpoints = prevTimer.breakPoints.map((breakpoint, index) => {
-                    if (index === editingBreakpoint) {
-                        return { ...breakpoint, duration: newDuration, endAt: newEndAt };
-                    }
-                    return breakpoint;
-                });
-
-                return {
-                    ...prevTimer,
-                    breakPoints: updatedBreakpoints,
-                };
-            });
-        }
-    }, [duration, editingBreakpoint]);
-
-    const [spinnerHourStartAt, setSpinnerHourStartAt] = useState(0);
-    const [spinnerMinuteStartAt, setSpinnerMinuteStartAt] = useState(0);
-    const [spinnerSecondStartAt, setSpinnerSecondStartAt] = useState(0);
-    useEffect(() => {
-        if (editingBreakpoint !== null) {
-            console.log("setting spinner start at")
-            const editingBreakPointDuration = newTimer.breakPoints[editingBreakpoint].duration;
-            const newDudation = {
-                hour: Math.floor((editingBreakPointDuration / (1000 * 60 * 60)) % 24),
-                minute: Math.floor((editingBreakPointDuration / (1000 * 60)) % 60),
-                second: Math.floor((editingBreakPointDuration / 1000) % 60),
-            };
-            const spinnerHourStartAt = Hours.findIndex(hour => hour === newDudation.hour);
-            const spinnerMinuteStartAt = Minutes.findIndex(minute => minute === newDudation.minute);
-            const spinnerSecondStartAt = Seconds.findIndex(second => second === newDudation.second);
-
-            setSpinnerHourStartAt(spinnerHourStartAt);
-            setSpinnerMinuteStartAt(spinnerMinuteStartAt);
-            setSpinnerSecondStartAt(spinnerSecondStartAt);
-        }
-    }, [editingBreakpoint]);
-
     const availableDuration = useMemo(() => {
         const totalBreakpointsDuration = newTimer.breakPoints.reduce((acc, bp) => acc + bp.duration, 0);
         return newTimer.duration - totalBreakpointsDuration;
     }, [newTimer]);
+
+    // ========== Play ========== //
+    const [playMode, setplayMode] = useState('stop');
+    const handlePlay = () => {
+        setplayMode('play');
+    }
+    const handlePause = () => {
+        setplayMode('pause');
+    }
+    const handleStop = () => {
+        setplayMode('stop');
+    }
+    const handleContinue = () => {
+        setplayMode('continue');
+    }
+
+    const timerDurationCollection = useMemo(() => {
+        const durations = newTimer.breakPoints.map(breakpoint => breakpoint.duration);
+        if (availableDuration > 0) {
+            durations.push(availableDuration);
+        }
+        return durations;
+    }, [newTimer.breakPoints, availableDuration]);
+    const [elapsedTime, setElapsedTime] = useState(0);
+    const pattern = vibrationPatterns[newTimer.vibration] || vibrationPatterns['Alarm'];
+    const [countdown, setCountdown] = useState(null);
+    const [scrollPosition, setScrollPosition] = useState(0);
     useEffect(() => {
-        calculateAndSetAvailableDuration(availableDuration);
-        console.log('availableDuration:', availableDuration);
-    }, [availableDuration]);
+        if (elapsedTime >= (newTimer.duration / 1000)) {
+            setplayMode('restart');
+        }
+    }, [elapsedTime, newTimer.duration]);
 
-    const [nowSetting, setNowSetting] = useState(null);
+    useEffect(() => {
+        let intervalId;
+        let countdownIntervalId;
 
-    const calculateAndSetAvailableDuration = (duration) => {
+        // Calculate the initial scroll position after countdown
+        const newTimerDurationSeconds = Math.floor(newTimer.duration / 1000);
+        const basicScrollUnit = ((progressLineTotalLength) / newTimerDurationSeconds);
+        const initialScrollPosition = basicScrollUnit;
 
-        console.log('nowSetting:', nowSetting);
-        const totalSeconds = Math.floor(duration / 1000);
-        const totalMinutes = Math.floor(totalSeconds / 60);
-        const totalHours = Math.floor(totalMinutes / 60);
+        const startCounting = () => {
+            setElapsedTime(elapsed => {
+                // Update scroll position
+                let newScrollPosition = 0;
+                if (elapsed > 0) {
+                    newScrollPosition = initialScrollPosition + ((elapsed - 1) * basicScrollUnit);
+                } else {
+                    newScrollPosition = initialScrollPosition + (elapsed * basicScrollUnit);
+                }
+                console.log('newScrollPosition:', newScrollPosition);
+                setScrollPosition(newScrollPosition);
 
-        const hoursArray = Array.from({ length: totalHours + 1 }, (_, index) => index);
-        const minutesArray = Array.from({ length: Math.min(60, totalMinutes + 1) }, (_, index) => index);
-        const secondsArray = Array.from({ length: Math.min(60, totalSeconds + 1) }, (_, index) => index);
+                if (scrollViewRef.current) {
+                    scrollViewRef.current.scrollTo({
+                        x: newScrollPosition,
+                        animated: true
+                    });
+                }
 
-        if (nowSetting === 'hour') {
-            setMinutes(minutesArray);
-            setSeconds(secondsArray);
-        } else if (nowSetting === 'minute') {
-            setHours(hoursArray);
-            setSeconds(secondsArray);
-        } else if (nowSetting === 'second') {
-            setHours(hoursArray);
-            setMinutes(minutesArray);
-        } else {
-            setHours(hoursArray);
-            setMinutes(minutesArray);
-            setSeconds(secondsArray);
+                if (vibrationPoints.includes(elapsed * 1000)) {
+                    Vibration.vibrate(pattern);
+                }
+
+                if (elapsed >= timerDurationCollection.reduce((a, b) => a + b, 0) / 1000) {
+                    clearInterval(intervalId);
+                    setplayMode('restart');
+                }
+
+                return elapsed + 1;
+            });
+        };
+
+        switch (playMode) {
+            case 'play':
+                // Clear any existing intervals
+                clearInterval(intervalId);
+                clearInterval(countdownIntervalId);
+                setCountdown(3); // 3-second countdown
+
+                // Reset elapsed time and directly reset the ScrollView position
+                setElapsedTime(0);
+                if (scrollViewRef.current) {
+                    scrollViewRef.current.scrollTo({ x: 0, animated: false });
+                }
+
+                countdownIntervalId = setInterval(() => {
+                    setCountdown(prevCountdown => {
+                        if (prevCountdown === 1) {
+                            clearInterval(countdownIntervalId);
+                            intervalId = setInterval(startCounting, 1000);
+                            return null;
+                        }
+                        return prevCountdown - 1;
+                    });
+                }, 1000);
+                break;
+            case 'pause':
+                // Pause the ticking and scrolling
+                clearInterval(intervalId);
+                clearInterval(countdownIntervalId);
+                break;
+            case 'stop':
+                // Stop and reset everything
+                clearInterval(intervalId);
+                clearInterval(countdownIntervalId);
+                setCountdown(null);
+                setElapsedTime(0);
+                if (scrollViewRef.current) {
+                    scrollViewRef.current.scrollTo({ x: 0, animated: false });
+                }
+                break;
+            case 'restart':
+                // Behave the same as pause
+                clearInterval(intervalId);
+                clearInterval(countdownIntervalId);
+                break;
+            case 'continue':
+                // Continue from where it was paused
+                if (countdown === null) {
+                    // If countdown is not active, continue the main timer
+                    intervalId = setInterval(startCounting, 1000);
+                } else {
+                    // If countdown is active, continue the countdown
+                    countdownIntervalId = setInterval(() => {
+                        setCountdown(prevCountdown => {
+                            if (prevCountdown === 1) {
+                                clearInterval(countdownIntervalId);
+                                intervalId = setInterval(startCounting, 1000);
+                                return null;
+                            }
+                            return prevCountdown - 1;
+                        });
+                    }, 1000);
+                }
+                break;
+        }
+
+        return () => {
+            clearInterval(intervalId);
+            clearInterval(countdownIntervalId);
+        };
+
+    }, [playMode, timerDurationCollection, vibrationPoints, pattern, newTimer.duration, progressLineWidth]);
+
+    // const [showTickPointer, setShowTickPointer] = useState(false);
+    useEffect(() => {
+        if ((vibrationPoints.includes(elapsedTime * 1000)) || ((elapsedTime * 1000) >= newTimer.duration)) {
+            Vibration.vibrate(pattern);
+        }
+    }, [elapsedTime, vibrationPoints, pattern]);
+    const vibrationPoints = useMemo(() => {
+        const newTimer = routeNewTimer || newTimer;
+        const vibrations = newTimer.breakPoints.map(breakpoint => breakpoint.endAt);
+        return vibrations;
+    }, [routeNewTimer.breakPoints]);
+
+    // ========== Render ========== //
+    const progressLineWidth = 2000;
+    const [progressLineTotalLength, setProgressLineTotalLength] = useState(0);
+    const scrollViewRef = useRef(null);
+    const lineGap = 6;
+    const lineWidth = 2;
+    useEffect(() => {
+        if (vibrationPoints && vibrationPoints.length > 0) {
+            // Calculate the total number of lines
+            const totalLines = Math.ceil(progressLineWidth / lineGap);
+
+            // Calculate the total length
+            const totalLength = totalLines * lineWidth + (totalLines - 1) * lineGap;
+            setProgressLineTotalLength(totalLength);
+        }
+    }, [vibrationPoints, lineGap, lineWidth, progressLineWidth]);
+
+    const progressTimeLine = (length, lineGap, lineWidth, lineHeight, elapsedTime) => {
+
+        if (vibrationPoints && vibrationPoints.length > 0) {
+            const lines = [];
+
+            // Calculate the total number of lines
+            const totalLines = Math.ceil(length / lineGap);
+
+            // Calculate milliseconds per line
+            const msPerLine = newTimer.duration / totalLines;
+
+            for (let i = 0; i < totalLines; i++) {
+                const startTimeForThisLine = msPerLine * i;
+                const endTimeForThisLine = startTimeForThisLine + msPerLine;
+
+                let isVibrationLine = vibrationPoints.some(point =>
+                    point >= startTimeForThisLine && point < endTimeForThisLine
+                );
+                let hasPassed = elapsedTime * 1000 >= startTimeForThisLine;
+
+                if (i === totalLines - 1) {
+                    isVibrationLine = true;
+                }
+
+                lines.push(
+                    <View
+                        key={i}
+                        style={{
+                            width: lineWidth,
+                            height: isVibrationLine ? lineHeight + 30 : lineHeight,
+                            backgroundColor: (isVibrationLine || hasPassed) ? colors.red : colors.Gray3,
+                            marginLeft: i === 0 ? 0 : lineGap,
+                        }}
+                    />
+                );
+            }
+            return lines;
         }
     };
 
-    // ========== Creat ========== //
-    const handleCreate = () => {
-        setTimers(prevTimers => {
-            const updatedTimers = [...prevTimers, newTimer];
-            AsyncStorage.setItem('timers', JSON.stringify(updatedTimers));
-            return updatedTimers;
-        });
-        navigation.navigate('Home');
-    }
+    const blockHeightThreshold = 300000;
+    const blockHeightRatio = 5000;
 
     return (
         <View style={styles.container}>
-            <ScrollView contentContainerStyle={styles.breakpointContainer} showsVerticalScrollIndicator={false}>
-                <View style={styles.breakpointTitleContainer}>
-                    <Text style={styles.breakpointTitle}>Total {totalDuration}</Text>
+            {countdown !== null && (
+                <View style={styles.fullScreenOverlay}>
+                    <Text style={styles.countdownText}>{countdown}</Text>
                 </View>
+            )}
+            <View style={styles.breakpointTitleContainer}>
+                <TouchableOpacity style={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center' }} onPress={handleBack}>
+                    <FontAwesomeIcon icon={faAngleLeft} size={22} color={colors.Gray3} />
+                    <Text style={styles.breakpointTitle}>Back</Text>
+                </TouchableOpacity>
 
-                {newTimer.breakPoints.length === 0 ? (
-                    <View style={styles.breakpointBodyContainer}>
-                        <TouchableOpacity
-                            style={styles.AddFirstBreakpoint}
-                            onPress={addNewBreakpoint}>
-                            <FontAwesomeIcon icon={faPlus} size={24} color={colors.darkGray} />
-                        </TouchableOpacity>
-                        <View style={styles.bodyTextContainer}>
-                            <Text style={{ fontSize: 20, fontWeight: '500', color: colors.Gray2, textAlign: 'center' }}>
-                                Click the “+” button to Add a new Breakpoint
-                            </Text>
-                        </View>
-                    </View>
-                ) : (
-                    <View style={[styles.breakpointBodyContainer, { paddingBottom: 40, rowGap: 3 }]}>
-                        {newTimer.breakPoints.map((breakpoint, index) => (
-                            <View key={index} style={[styles.breakPointObject, { zIndex: newTimer.breakPoints.length - index }]}>
-                                <View style={styles.breakPointBlockContainer}>
-                                    <TouchableOpacity style={[styles.breakPointBlock, editingBreakpoint === index && { backgroundColor: colors.lightRed }]} onPress={() => handleBreakpointClick(index)}>
-                                        <Text style={[styles.breakPointText, editingBreakpoint === index && { color: colors.red }]}>{formatDuration(breakpoint.duration)}</Text>
-                                    </TouchableOpacity>
-                                </View>
-                                <View style={styles.breakPointLineContainer}>
-                                    <View style={styles.breakPointIndicator}>
-                                        <Text style={styles.breakPointIndicatorText}>
-                                            {formatDuration(breakpoint.endAt)}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.lineContainer}>
-                                        <DashedLine dashWidth={5} dashGap={5} dashColor={colors.black} />
-                                    </View>
-                                </View>
-                            </View>
-                        ))}
-
-                        {editingBreakpoint === null && availableDuration !== 0 && (
+                <TouchableOpacity onPress={handleEdit}>
+                    <Text style={[styles.breakpointTitle, { color: colors.black }]}>Edit</Text>
+                </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.breakpointContainer} showsVerticalScrollIndicator={false}>
+                <View style={styles.breakpointBodyContainer}>
+                    {newTimer.breakPoints.map((breakpoint, index) => (
+                        <View key={index} style={[styles.breakPointObject, { zIndex: newTimer.breakPoints.length - index }]}>
                             <View style={styles.breakPointBlockContainer}>
-                                <TouchableOpacity
-                                    style={[styles.AddFirstBreakpoint, { height: 50 }]}
-                                    onPress={addNewBreakpoint}>
-                                    <FontAwesomeIcon icon={faPlus} size={18} color={colors.darkGray} />
-                                </TouchableOpacity>
+                                <View
+                                    style={[
+                                        styles.breakPointBlock,
+                                        { height: breakpoint.duration > blockHeightThreshold ? breakpoint.duration / blockHeightRatio : 60 },
+                                        { justifyContent: breakpoint.duration > blockHeightThreshold ? 'flex-start' : 'center' }
+                                    ]}
+                                >
+                                    <Text style={[styles.breakPointText]}>{formatDuration(breakpoint.duration)}</Text>
+                                </View>
                             </View>
-                        )}
-                    </View>
-                )}
+                            <View style={styles.breakPointLineContainer}>
+                                <View style={styles.breakPointIndicator}>
+                                    {breakpoint.endAt === newTimer.duration ?
+                                        (
+                                            <Text style={styles.breakPointIndicatorText}>
+                                                End
+                                            </Text>
+                                        ) : (
+                                            <Text style={styles.breakPointIndicatorText}>
+                                                {formatDuration(breakpoint.endAt)}
+                                            </Text>
+                                        )
+                                    }
+                                </View>
+                                <View style={styles.lineContainer}>
+                                    <DashedLine dashWidth={5} dashGap={5} dashColor={colors.black} />
+                                </View>
+                            </View>
+                        </View>
+                    ))}
+                    {availableDuration > 0 && (
+                        <View style={[styles.breakPointObject, { zIndex: -2 }]}>
+                            <View style={styles.breakPointBlockContainer}>
+                                <View
+                                    style={[
+                                        styles.breakPointBlock,
+                                        { height: availableDuration > blockHeightThreshold ? availableDuration / blockHeightRatio : 60 },
+                                        { justifyContent: availableDuration > blockHeightThreshold ? 'flex-start' : 'center' }
+                                    ]}
+                                >
+                                    <Text style={[styles.breakPointText]}>{formatDuration(availableDuration)}</Text>
+                                </View>
+                            </View>
+                            <View style={styles.breakPointLineContainer}>
+                                <View style={[styles.breakPointIndicator]}>
+                                    <Text style={styles.breakPointIndicatorText}>
+                                        End
+                                    </Text>
+                                </View>
+                                <View style={styles.lineContainer}>
+                                    <DashedLine dashWidth={5} dashGap={5} dashColor={colors.black} />
+                                </View>
+                            </View>
+                        </View>
+                    )}
+                </View>
             </ScrollView>
 
             <View style={styles.bottomContainer}>
-                {editingBreakpoint !== null && (
-                    <View style={styles.editingContainer}>
-                        <TouchableOpacity style={styles.downButton} onPress={handleCloseModal}>
-                            <FontAwesomeIcon icon={faXmark} size={16} color={colors.black} />
-                        </TouchableOpacity>
-                        <View style={styles.timeSelectContainer}>
-                            <View style={styles.timeSelectModule}>
-                                <View style={styles.timeSelectTiteContainer}>
-                                    <Text style={styles.timePickerTitle}>hour</Text>
-                                </View>
-                                <InsetShadow
-                                    shadowOpacity={0.12}
-                                    shadowOffset={2}
-                                    shadowRadius={4}
-                                    shadowColor={colors.black}
-                                    containerStyle={styles.timeSelectWheelContainer}
-                                >
-                                    <InsetShadow
-                                        shadowOpacity={1}
-                                        shadowColor={colors.white}
-                                        shadowOffset={0}
-                                        shadowRadius={15}
-                                        containerStyle={styles.timeSelectWheelContainer}
-                                    >
-                                        <View style={styles.timeSelectWheelContent}>
-                                            <WheelPickerExpo
-                                                height={220}
-                                                width={100}
-                                                initialSelectedIndex={spinnerHourStartAt}
-                                                items={Hours.map((hour) => ({ label: `${hour}`, value: hour }))}
-                                                renderItem={(props) => {
-                                                    return (
-                                                        <Text style={styles.timeWheelItemText}>{props.label}</Text>
-                                                    );
-                                                }}
-                                                onChange={({ item }) => {
-                                                    setNowSetting('hour');
-                                                    setDuration(prevDuration => ({
-                                                        ...prevDuration,
-                                                        hour: item.value
-                                                    }));
-                                                }}
-                                            />
-                                        </View>
-                                    </InsetShadow>
-                                </InsetShadow>
-                            </View>
-                            <View style={styles.timeSelectModule}>
-                                <View style={styles.timeSelectTiteContainer}>
-                                    <Text style={styles.timePickerTitle}>min</Text>
-                                </View>
-                                <InsetShadow
-                                    shadowOpacity={0.12}
-                                    shadowOffset={2}
-                                    shadowRadius={4}
-                                    shadowColor={colors.black}
-                                    containerStyle={styles.timeSelectWheelContainer}
-                                >
-                                    <InsetShadow
-                                        shadowOpacity={1}
-                                        shadowColor={colors.white}
-                                        shadowOffset={0}
-                                        shadowRadius={15}
-                                        containerStyle={styles.timeSelectWheelContainer}
-                                    >
-                                        <View style={styles.timeSelectWheelContent}>
-                                            <WheelPickerExpo
-                                                height={220}
-                                                width={100}
-                                                initialSelectedIndex={spinnerMinuteStartAt}
-                                                items={Minutes.map((minute) => ({ label: `${minute}`, value: minute }))}
-                                                renderItem={(props) => {
-                                                    return (
-                                                        <Text style={styles.timeWheelItemText}>{props.label}</Text>
-                                                    );
-                                                }}
-                                                onChange={({ item }) => {
-                                                    setNowSetting('minute');
-                                                    setDuration(prevDuration => ({
-                                                        ...prevDuration,
-                                                        minute: item.value
-                                                    }));
-                                                }}
-                                            />
-                                        </View>
-                                    </InsetShadow>
-                                </InsetShadow>
-                            </View>
-                            <View style={styles.timeSelectModule}>
-                                <View style={styles.timeSelectTiteContainer}>
-                                    <Text style={styles.timePickerTitle}>sec</Text>
-                                </View>
-                                <InsetShadow
-                                    shadowOpacity={0.12}
-                                    shadowOffset={2}
-                                    shadowRadius={4}
-                                    shadowColor={colors.black}
-                                    containerStyle={styles.timeSelectWheelContainer}
-                                >
-                                    <InsetShadow
-                                        shadowOpacity={1}
-                                        shadowColor={colors.white}
-                                        shadowOffset={0}
-                                        shadowRadius={15}
-                                        containerStyle={styles.timeSelectWheelContainer}
-                                    >
-                                        <View style={styles.timeSelectWheelContent}>
-                                            <WheelPickerExpo
-                                                height={220}
-                                                width={100}
-                                                initialSelectedIndex={spinnerSecondStartAt}
-                                                items={Seconds.map((second) => ({ label: `${second}`, value: second }))}
-                                                renderItem={(props) => {
-                                                    return (
-                                                        <Text style={styles.timeWheelItemText}>{props.label}</Text>
-                                                    );
-                                                }}
-                                                onChange={({ item }) => {
-                                                    setNowSetting('second');
-                                                    setDuration(prevDuration => ({
-                                                        ...prevDuration,
-                                                        second: item.value
-                                                    }));
-                                                }}
-                                            />
-                                        </View>
-                                    </InsetShadow>
-                                </InsetShadow>
-                            </View>
+                {playMode !== 'stop' &&
+                    (<View style={styles.editingContainer}>
+                        <View style={[styles.elapsedTimeContainer, elapsedTime > 0 && { opacity: 1 }]}>
+                            <Text style={styles.elapsedTimeText}>
+                                {formatDurationToNumeric(elapsedTime * 1000)}
+                            </Text>
                         </View>
-                    </View>
-                )}
+                        <ScrollView
+                            ref={scrollViewRef}
+                            contentContainerStyle={[styles.progressLineContainer, { paddingRight: 2000 }]}
+                            horizontal={true}
+                            showsHorizontalScrollIndicator={false}
+                            scrollEnabled={false}
+                        >
+                            <View style={styles.progressLineSrollArea}>
+                                {progressTimeLine(progressLineWidth, lineGap, lineWidth, 40, elapsedTime)}
+                            </View>
+                        </ScrollView>
+                    </View>)}
                 <View style={styles.bottomButtonContainer}>
-                    <TouchableOpacity style={styles.bottomButton} onPress={handleBack}>
-                        <Text style={styles.bottomButtonText}>Back</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.black }]} onPress={handleCreate}>
-                        <Text style={[styles.bottomButtonText, { color: colors.white }]}>Create</Text>
-                    </TouchableOpacity>
+                    {playMode === 'stop' && (
+                        <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.black }]} onPress={handlePlay}>
+                            <FontAwesomeIcon icon={faPlay} size={21} color={colors.white} />
+                        </TouchableOpacity>
+                    )}
+                    {(playMode === 'play' || playMode === 'continue') && (
+                        <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.lightRed }]} onPress={handlePause}>
+                            <FontAwesomeIcon icon={faPause} size={21} color={colors.red} />
+                        </TouchableOpacity>
+                    )}
+                    {playMode === 'pause' && (
+                        <View style={{ flex: 1, flexDirection: 'row', columnGap: 10 }}>
+                            <TouchableOpacity style={[styles.stopButton, { backgroundColor: colors.Gray1 }]} onPress={handleStop}>
+                                <FontAwesomeIcon icon={faStop} size={21} color={colors.black} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.black }]} onPress={handleContinue}>
+                                <FontAwesomeIcon icon={faForward} size={21} color={colors.white} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    {playMode === 'restart' && (
+                        <View style={{ flex: 1, flexDirection: 'row', columnGap: 10 }}>
+                            <TouchableOpacity style={[styles.stopButton, { backgroundColor: colors.Gray1 }]} onPress={handleStop}>
+                                <FontAwesomeIcon icon={faStop} size={21} color={colors.black} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.Gray1 }]} onPress={handlePlay}>
+                                <View style={{ transform: 'rotate(-45deg)' }} >
+                                    <FontAwesomeIcon icon={faRotateRight} size={21} color={colors.black} />
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
             </View>
         </View>

@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import colors from './colors';
+import fontSize from './fontSize';
 
 const styles = StyleSheet.create({
     vibrationContainer: {
@@ -21,7 +22,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     buttonText:{
-        fontSize: 18,
+        fontSize: fontSize.large,
         fontWeight: '500',
         color: colors.black,
     },  
@@ -43,7 +44,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
     },
     selectionTitle:{
-        fontSize: 16,
+        fontSize: fontSize.medium,
         color: colors.black,
     },
     selectionRadio:{

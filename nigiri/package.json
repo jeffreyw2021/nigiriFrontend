@@ -19,6 +19,7 @@
     "react": "18.2.0",
     "react-native": "0.72.6",
     "react-native-inset-shadow": "^1.0.3",
+    "react-native-svg": "^14.1.0",
     "react-native-wheel-picker-expo": "^0.5.4"
   },
   "devDependencies": {

@@ -13,19 +13,27 @@ const styles = StyleSheet.create({
     breakpointContainer:{
         width: '100%',
         paddingHorizontal: 30,
-        paddingTop:80,
+        paddingTop:120,
         paddingBottom: 240,
         backgroundColor: colors.white,
         rowGap: 22,
     },
     breakpointTitleContainer:{
+        zIndex: 1,
+        position: 'absolute',
+        paddingTop: 60,
+        paddingBottom: 10,
+        paddingHorizontal: 30,
+        top: 0,
         width: '100%',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: colors.white,
     },
     breakpointTitle:{
         color: colors.Gray3,
-        fontSize: fontSize.xlarge,
+        fontSize: fontSize.large,
         fontWeight: '600',
     },
 
@@ -37,9 +45,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: 50
     },
 
+    progressCover:{
+        top: 120,
+        // right: 30,
+        // width: width - 110,
+        width: width,
+        borderBottomColor: colors.red,
+        borderBottomWidth: 2,
+        position: 'absolute',
+        zIndex: 20,
+        // borderRadius: 12,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+    },
     breakpointBodyContainer:{
         alignItems: 'center',
         justifyContent: 'flex-start',
+        rowGap: 3,
     },
     AddFirstBreakpoint:{
         width: '100%',
@@ -60,7 +82,7 @@ const styles = StyleSheet.create({
     },
     breakPointBlock:{
         height: 60,
-        padding: 12,
+        padding: 15,
         alignItems:'flex-start',
         justifyContent: 'center',
         backgroundColor: colors.smokeWhite,
@@ -99,75 +121,76 @@ const styles = StyleSheet.create({
         fontSize: fontSize.small,
     },
 
+    tickPointer: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        rowGap: 70,
+    },
+    tickPointerContainer:{
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+    },
+    triangleContainer:{
+        position: 'absolute',
+        top: -12,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+    },
+    tickLineContainer:{
+        rowGap: 4,
+    },
+    tickLine:{
+        width: 2,
+        height: 8,
+        backgroundColor: colors.red,
+    },
+    
     editingContainer:{
-        width: '100%',
+        width: width,
         backgroundColor: colors.white,
-        paddingHorizontal: 20,
-        paddingBottom: 20,
-        paddingTop: 10,
+        height: 150,
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
-        flexDirection: 'row',
         justifyContent: 'flex-start',
+        alignItems: 'flex-start',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -1 }, 
         shadowOpacity: 0.10, 
         shadowRadius: 2,
         elevation: 3,
     },
-    timeSelectContainer:{
-        width: 250,
+    elapsedTimeContainer:{
+        paddingLeft: 30,
+        paddingTop: 15,
+        opacity: 0
+    },
+    elapsedTimeText:{
+        color: colors.darkGray,
+        fontSize: fontSize.xlarge,
+        fontWeight: '500',
+    },
+    progressLineContainer:{
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        paddingLeft: 30,
+        paddingBottom: 6,
+    },
+    progressLineSrollArea: {
+        width: '100%',
+        alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'flex-start',
-        columnGap: 10,
-    },
-    timeSelectModule:{
-        flex: 1,
-        rowGap: 2,
-    },
-    timeSelectTiteContainer:{
-        width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    timePickerTitle:{
-        fontSize: fontSize.medium,
-        fontWeight: '500',
-    },
-    timeSelectWheelContainer: {
-        width: '100%',
-        height: 60,
-        justifyContent: 'flex-start',
-        alignItems: 'center',
-        backgroundColor: colors.white,
-        overflow: 'hidden',
-        borderRadius: 10,
-    },
-    timeSelectWheelContent: {
-        width: 77,
-        height: 60,
-        overflow: 'hidden',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    timeWheelItemText: {
-        fontSize: fontSize.xxlarge,
-        fontWeight: '500',
-        marginVertical: 0,
-        color: colors.black,
-        textAlign: 'center'
-    },
-    downButton:{
-        position: 'absolute',
-        right: 10,
-        top: 10,
-        height: 30,
-        width: 30,
-        backgroundColor: colors.Gray1,
-        borderRadius: 28,
-        paddingTop: 2,
-        justifyContent: 'center',
-        alignItems: 'center',
+        position: 'relative', 
     },
 
     bottomContainer:{
@@ -197,6 +220,16 @@ const styles = StyleSheet.create({
     },
     bottomButton:{
         flex:1,
+        height: 45,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        backgroundColor: colors.Gray1,
+        borderRadius: 8,
+    },
+    stopButton:{
+        width: 90,
+        height: 45,
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 10,
@@ -207,6 +240,25 @@ const styles = StyleSheet.create({
         color: colors.black,
         fontSize: fontSize.large,
     },
+    fullScreenOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: width,
+        height: height,
+        zIndex: 100,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+    },
+    
+    countdownText: {
+        fontSize: fontSize.major,
+        color: 'white',
+    }
+    
 });
 
 export default styles;

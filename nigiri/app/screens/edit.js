@@ -10,7 +10,7 @@ import InsetShadow from 'react-native-inset-shadow';
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faAngleDown, faPlus, faXmark } from "@fortawesome/free-solid-svg-icons";
 
-const AddBreakpoint = () => {
+const Edit = () => {
 
     // ========== Initiation ========== //
     const navigation = useNavigation();
@@ -41,23 +41,11 @@ const AddBreakpoint = () => {
         };
         getTimers();
     }, []);
-    const routeNewTimer = route.params?.sendTimer;
+    const routeNewTimer = route.params?.timer;
     useEffect(() => {
         console.log('routeNewTimer:', routeNewTimer);
         if (routeNewTimer) {
-            if (routeNewTimer.title === '') {
-                const newTitle = formatDuration(routeNewTimer.duration);
-                setNewTimer(prevTimer => ({
-                    ...routeNewTimer,
-                    title: newTitle,
-                    createdAt: Date.now(),
-                }));
-            } else {
-                setNewTimer(prevTimer => ({
-                    ...routeNewTimer,
-                    createdAt: Date.now(),
-                }));
-            }
+            setNewTimer(routeNewTimer);
         }
     }, [routeNewTimer]);
 
@@ -128,9 +116,8 @@ const AddBreakpoint = () => {
 
     // ========== Navigation ========== //
     const handleBack = () => {
-        // Filter out breakpoints with a duration of 0
-        const savedBreakpoints = newTimer.breakPoints.filter(breakPoint => breakPoint.duration !== 0);
-        navigation.navigate('Add', { savedBreakpoints });
+        const timer = newTimer;
+        navigation.navigate('Detail', { timer });
     }
 
     // ========== Breakpoints ========== //
@@ -247,12 +234,9 @@ const AddBreakpoint = () => {
         return newTimer.duration - totalBreakpointsDuration;
     }, [newTimer]);
     useEffect(() => {
-        // if (availableDuration === 0) {
-        //     calculateAndSetAvailableDuration(availableDuration, true);
-        // }
         calculateAndSetAvailableDuration(availableDuration);
         console.log('availableDuration:', availableDuration);
-    }, [availableDuration]);
+    }, [availableDuration, routeNewTimer]);
 
     const [nowSetting, setNowSetting] = useState(null);
 
@@ -319,21 +303,6 @@ const AddBreakpoint = () => {
         });
         navigation.navigate('Home');
     }
-    useEffect(() => {
-        console.log('timers:', timers);
-
-        // Iterate over each timer in the timers array
-        timers.forEach((timer, index) => {
-            console.log(`Timer ${index + 1}:`, timer);
-
-            // Check if the timer has breakPoints and iterate over them
-            if (timer.breakPoints && Array.isArray(timer.breakPoints)) {
-                timer.breakPoints.forEach((breakpoint, bpIndex) => {
-                    console.log(`Timer ${index + 1} - Breakpoint ${bpIndex + 1}:`, JSON.stringify(breakpoint));
-                });
-            }
-        });
-    }, [timers]);
 
 
     return (
@@ -523,10 +492,10 @@ const AddBreakpoint = () => {
                 )}
                 <View style={styles.bottomButtonContainer}>
                     <TouchableOpacity style={styles.bottomButton} onPress={handleBack}>
-                        <Text style={styles.bottomButtonText}>Back</Text>
+                        <Text style={styles.bottomButtonText}>Cancel</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.black }]} onPress={handleCreate}>
-                        <Text style={[styles.bottomButtonText, { color: colors.white }]}>Create</Text>
+                        <Text style={[styles.bottomButtonText, { color: colors.white }]}>Confirm</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -534,4 +503,4 @@ const AddBreakpoint = () => {
     );
 };
 
-export default AddBreakpoint;
+export default Edit;

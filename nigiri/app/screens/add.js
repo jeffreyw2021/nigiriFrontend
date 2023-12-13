@@ -14,13 +14,49 @@ const Add = () => {
     // ========== Initiation ========== //
     const navigation = useNavigation();
     const route = useRoute();
+    const fetchTimers = async () => {
+        const timers = await AsyncStorage.getItem("timers");
+        return timers ? JSON.parse(timers) : [];
+    };
+    const checkIfIdExists = (id, timersSet) => {
+        return timersSet.has(id);
+    };
+    const generateRandomId = async () => {
+        const characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let id = '';
+        const timers = await fetchTimers();
+        const timerIds = new Set(timers.map(timer => timer.id));
+    
+        do {
+            id = '';
+            for (let i = 0; i < 16; i++) {
+                const randomIndex = Math.floor(Math.random() * characters.length);
+                id += characters[randomIndex];
+            }
+        } while (checkIfIdExists(id, timerIds));
+        return id;
+    };    
     const [newTimer, setNewTimer] = useState({
+        id: '',
         createdAt: Date.now(),
         title: '',
         duration: 60000,
         vibration: 'Alarm',
         breakPoints: []
     });
+    useEffect(()=>{
+        console.log("newTimer:", newTimer);
+    },[newTimer])
+    useEffect(() => {
+        const setId = async () => {
+            const id = await generateRandomId();
+            setNewTimer(prevTimer => ({
+                ...prevTimer,
+                id
+            }));
+        };
+        setId();
+    }, []);
 
     // ========== Time Wheel Picker ========== //
     const Hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -99,13 +135,8 @@ const Add = () => {
             alert('Please set a duration for the timer.'); 
             return;
         }
-        if(newTimer.title === ''){
-            setNewTimer(prevTimer => ({
-                ...prevTimer,
-                title: 'Timer'
-            }));
-        }
-        navigation.navigate('AddBreakpoint', { newTimer });
+        const sendTimer = newTimer;
+        navigation.navigate('AddBreakpoint', { sendTimer });
     }
 
     return (
@@ -250,7 +281,7 @@ const Add = () => {
                             }}
                             selectionColor={colors.darkGray}
                             value={newTimer.title}
-                            maxLength={20}
+                            maxLength={26}
                         />
                     </View>
                     <TouchableOpacity style={[styles.inputRow, { paddingRight: 14 }]} onPress={() => navigation.navigate('Vibration')}>

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, PanResponder } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles/homeStyle';
@@ -10,6 +10,13 @@ import { faPlus, faTrash, faTrashCan } from "@fortawesome/free-solid-svg-icons";
 const Home = () => {
     const navigation = useNavigation();
     const [timers, setTimers] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await getTimers();
+        setRefreshing(false);
+    }, []);
 
     const getTimers = async () => {
         try {
@@ -41,7 +48,7 @@ const Home = () => {
 
     const deleteTimers = async () => {
         try {
-            const newTimers = timers.filter(timer => !selectedTimers.includes(timer.createdAt));
+            const newTimers = timers.filter(timer => !selectedTimers.includes(timer.id));
             await AsyncStorage.setItem('timers', JSON.stringify(newTimers));
             setTimers(newTimers);
             setSelectedTimers([]);
@@ -53,14 +60,20 @@ const Home = () => {
         setSelectedTimers([]);
         setIsEditMode(!isEditMode);
     }
-    
+
     const [detailTimer, setDetailTimer] = useState(null);
     useEffect(() => {
         if (detailTimer) {
-            console.log("sending detail timer to Detail screen:", detailTimer);
+            // console.log("sending detail timer to Detail screen:", detailTimer);
             navigation.navigate('Detail', { timer: detailTimer });
         }
     }, [detailTimer]);
+
+    useEffect(() => {
+        if (timers.length === 0) {
+            setIsEditMode(false);
+        }
+    }, [timers])
 
     return (
         <View style={styles.container}>
@@ -88,19 +101,28 @@ const Home = () => {
                             </TouchableOpacity>
                         </View>
                     </View>
-                    <ScrollView contentContainerStyle={styles.timersList} showsVerticalScrollIndicator={false}>
+                    <ScrollView
+                        contentContainerStyle={styles.timersList}
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                            />
+                        }
+                    >
                         {[...timers]
                             .sort((a, b) => b.createdAt - a.createdAt)
                             .map((timer, index) => (
-                                <TouchableOpacity key={index} style={[styles.timerBlock, (isEditMode && selectedTimers.includes(timer.createdAt)) && { backgroundColor: colors.Gray3 }]}
+                                <TouchableOpacity key={index} style={[styles.timerBlock, (isEditMode && selectedTimers.includes(timer.id)) && { backgroundColor: colors.Gray3 }]}
                                     onPress={() => {
                                         if (isEditMode) {
-                                            if (selectedTimers.includes(timer.createdAt)) {
-                                                setSelectedTimers(selectedTimers.filter(createdAt => createdAt !== timer.createdAt));
+                                            if (selectedTimers.includes(timer.id)) {
+                                                setSelectedTimers(selectedTimers.filter(id => id !== timer.id));
                                             } else {
-                                                setSelectedTimers([...selectedTimers, timer.createdAt]);
+                                                setSelectedTimers([...selectedTimers, timer.id]);
                                             }
-                                        }else{
+                                        } else {
                                             console.log('setting detail timer:', timer);
                                             setDetailTimer(timer);
                                         }
@@ -108,7 +130,7 @@ const Home = () => {
                                     <Text style={[styles.timerDuration, isEditMode && { color: colors.darkGray }]}>
                                         {formatDuration(timer.duration)}
                                     </Text>
-                                    <Text style={[styles.timerTitle, isEditMode && { color: colors.darkGray }]} numberOfLines={1} ellipsizeMode='tail'>
+                                    <Text style={[styles.timerTitle, isEditMode && { color: colors.darkGray }]} numberOfLines={2} ellipsizeMode='tail'>
                                         {timer.title}
                                     </Text>
                                 </TouchableOpacity>

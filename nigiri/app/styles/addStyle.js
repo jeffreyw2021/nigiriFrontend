@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import colors from './colors';
+import fontSize from './fontSize';
 
 const styles = StyleSheet.create({
     addContainer:{
@@ -15,7 +16,7 @@ const styles = StyleSheet.create({
     },
     timePickerTitle: {
         color: colors.black,
-        fontSize: 20,
+        fontSize: fontSize.xlarge,
         fontWeight: '500',
     },
     timeSelectContainer:{
@@ -50,8 +51,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center'
     },
     timeWheelItemText: {
-        fontSize: 33,
-        fontWeight: '500',
+        // fontFamily: 'Rubik',
+        fontSize: fontSize.xxxlarge,
+        fontWeight: '700',
         marginVertical: -40,
         color: colors.black,
         textAlign: 'center'
@@ -70,12 +72,12 @@ const styles = StyleSheet.create({
         columnGap: 40,
     },
     inputTitle:{
-        fontSize: 18,
+        fontSize: fontSize.large,
         color: colors.black,
     },
     titleInputField:{
         flex: 1,
-        fontSize: 18,
+        fontSize: fontSize.large,
         color: colors.black,
         textAlign: 'right',
     },
@@ -96,7 +98,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     buttonText:{
-        fontSize: 18,
+        fontSize: fontSize.large,
         color: colors.black,
     },
 });

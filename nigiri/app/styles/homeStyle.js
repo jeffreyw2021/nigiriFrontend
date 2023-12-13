@@ -1,7 +1,9 @@
 import { StyleSheet, Dimensions } from 'react-native';
 import colors from './colors';
+import fontSize from './fontSize';
 
 const { width, height } = Dimensions.get('window');
+const selectedFont = '';
 
 const styles = StyleSheet.create({
     container: {
@@ -25,7 +27,8 @@ const styles = StyleSheet.create({
     text: {
         textAlign: 'center',
         color: colors.Gray2,
-        fontSize: 20,
+        fontSize: fontSize.xlarge,
+        fontFamily: selectedFont,
         fontWeight: '500',
         textTransform: 'capitalize',
     },
@@ -56,7 +59,8 @@ const styles = StyleSheet.create({
     },
     topButtonText:{
         color: colors.black,
-        fontSize: 18,
+        fontSize: fontSize.large,
+        fontFamily: selectedFont,
         fontWeight: '600',
     },
     timersContainer: {
@@ -85,12 +89,14 @@ const styles = StyleSheet.create({
         borderBox: 'box-sizing',
     },
     timerDuration: {
-        fontSize: 34,
+        fontSize: fontSize.xxxlarge,
+        fontFamily: selectedFont,
         fontWeight: '500',
         color: colors.black,
     },
     timerTitle: {
-        fontSize: 16,
+        fontSize: fontSize.medium,
+        fontFamily: selectedFont,
         fontWeight: '400',
         color: colors.black,
         overflow: 'hidden', 
