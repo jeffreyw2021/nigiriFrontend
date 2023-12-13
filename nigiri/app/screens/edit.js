@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import colors from '../styles/colors';
 import styles from '../styles/breakpointStyle';
@@ -116,8 +116,8 @@ const Edit = () => {
 
     // ========== Navigation ========== //
     const handleBack = () => {
-        const timer = newTimer;
-        navigation.navigate('Detail', { timer });
+        const savedBreakpoints = newTimer.breakPoints.filter(breakPoint => breakPoint.duration !== 0);
+        navigation.navigate('EditInfo', { savedBreakpoints });
     }
 
     // ========== Breakpoints ========== //
@@ -132,31 +132,28 @@ const Edit = () => {
                 breakPoints: [...prevTimer.breakPoints, newBreakpoint],
             };
         });
-
-        calculateAndSetAvailableDuration(availableDuration);
         setEditingBreakpoint(newTimer.breakPoints.length);
     };
-
-    const [editingBreakpoint, setEditingBreakpoint] = useState(null);
-    const handleBreakpointClick = (index) => {
-        if (index === editingBreakpoint) {
-            setEditingBreakpoint(null);
+    const handleCloseModal = () => {
+        const currentEditingBreakpointDuration = duration.hour * 3600000 + duration.minute * 60000 + duration.second * 1000;
+        const otherBreakPointDuration = newTimer.breakPoints.reduce((acc, breakPoint, index) => {
+            if (index !== editingBreakpoint) {
+                return acc + breakPoint.duration;
+            }
+            return acc;
+        }, 0);
+        const totalEditedDuration = currentEditingBreakpointDuration + otherBreakPointDuration;
+    
+        if (totalEditedDuration > newTimer.duration) {
+            const remainingDuration = newTimer.duration - otherBreakPointDuration;
+            newTimer.breakPoints[editingBreakpoint].duration = remainingDuration;
+            finalizeEditing();
         } else {
-            setEditingBreakpoint(index);
-            const selectedBreakpointDuration = newTimer.breakPoints[index].duration;
-
-            const hour = Math.floor((selectedBreakpointDuration / (1000 * 60 * 60)) % 24);
-            const minute = Math.floor((selectedBreakpointDuration / (1000 * 60)) % 60);
-            const second = Math.floor((selectedBreakpointDuration / 1000) % 60);
-
-            setDuration({ hour, minute, second });
-
-            setSpinnerHourStartAt(Hours.findIndex(h => h === hour));
-            setSpinnerMinuteStartAt(Minutes.findIndex(m => m === minute));
-            setSpinnerSecondStartAt(Seconds.findIndex(s => s === second));
+            finalizeEditing();
         }
     };
-    const handleCloseModal = () => {
+    
+    const finalizeEditing = () => {
         setEditingBreakpoint(null);
         setDuration({
             hour: 0,
@@ -171,16 +168,16 @@ const Edit = () => {
                 }
             }
         }
-        setNowSetting(null);
-    }
+    }    
+
     useEffect(() => {
         console.log('editingBreakpoint:', editingBreakpoint);
     }, [editingBreakpoint]);
 
     // ========== Time Picker ========== //
-    const [Hours, setHours] = useState([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    const [Minutes, setMinutes] = useState(Array.from({ length: 60 }, (_, index) => index));
-    const [Seconds, setSeconds] = useState(Array.from({ length: 60 }, (_, index) => index));
+    const Hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const Minutes = Array.from({ length: 60 }, (_, index) => index);
+    const Seconds = Array.from({ length: 60 }, (_, index) => index);
     const [duration, setDuration] = useState({
         hour: 0,
         minute: 0,
@@ -210,69 +207,54 @@ const Edit = () => {
     const [spinnerHourStartAt, setSpinnerHourStartAt] = useState(0);
     const [spinnerMinuteStartAt, setSpinnerMinuteStartAt] = useState(0);
     const [spinnerSecondStartAt, setSpinnerSecondStartAt] = useState(0);
+    const [editingBreakpoint, setEditingBreakpoint] = useState(null);
+    const handleBreakpointClick = (index) => {
+        setEditingBreakpoint(index === editingBreakpoint ? null : index);
+    };
     useEffect(() => {
         if (editingBreakpoint !== null) {
             console.log("setting spinner start at")
             const editingBreakPointDuration = newTimer.breakPoints[editingBreakpoint].duration;
-            const newDudation = {
-                hour: Math.floor((editingBreakPointDuration / (1000 * 60 * 60)) % 24),
-                minute: Math.floor((editingBreakPointDuration / (1000 * 60)) % 60),
-                second: Math.floor((editingBreakPointDuration / 1000) % 60),
-            };
-            const spinnerHourStartAt = Hours.findIndex(hour => hour === newDudation.hour);
-            const spinnerMinuteStartAt = Minutes.findIndex(minute => minute === newDudation.minute);
-            const spinnerSecondStartAt = Seconds.findIndex(second => second === newDudation.second);
 
+            const hour = Math.floor((editingBreakPointDuration / (1000 * 60 * 60)) % 24);
+            const minute = Math.floor((editingBreakPointDuration / (1000 * 60)) % 60);
+            const second = Math.floor((editingBreakPointDuration / 1000) % 60);
+
+            console.log("newDuration", { hour, minute, second })
+            const spinnerHourStartAt = Hours.findIndex(h => h === hour);
+            const spinnerMinuteStartAt = Minutes.findIndex(m => m === minute);
+            const spinnerSecondStartAt = Seconds.findIndex(s => s === second);
+
+            console.log("setting spinner hour start at", spinnerHourStartAt)
             setSpinnerHourStartAt(spinnerHourStartAt);
+            console.log("setting spinner minute start at", spinnerMinuteStartAt)
             setSpinnerMinuteStartAt(spinnerMinuteStartAt);
+            console.log("setting spinner second start at", spinnerSecondStartAt)
             setSpinnerSecondStartAt(spinnerSecondStartAt);
         }
     }, [editingBreakpoint]);
+
+    useEffect(() => {
+        // Create a copy of the breakpoints
+        const updatedBreakPoints = newTimer.breakPoints.map(bp => {
+            const expectedEndAt = bp.startAt + bp.duration;
+            // Check if endAt needs to be updated
+            if (bp.endAt !== expectedEndAt) {
+                return { ...bp, endAt: expectedEndAt };
+            }
+            return bp;
+        });
+        // Check if any breakpoints were updated
+        const isAnyBreakPointUpdated = !newTimer.breakPoints.every((bp, index) => bp.endAt === updatedBreakPoints[index].endAt);
+        if (isAnyBreakPointUpdated) {
+            setNewTimer({ ...newTimer, breakPoints: updatedBreakPoints });
+        }
+    }, [JSON.stringify(newTimer.breakPoints.map(bp => bp.duration))]);
 
     const availableDuration = useMemo(() => {
         const totalBreakpointsDuration = newTimer.breakPoints.reduce((acc, bp) => acc + bp.duration, 0);
         return newTimer.duration - totalBreakpointsDuration;
     }, [newTimer]);
-    useEffect(() => {
-        calculateAndSetAvailableDuration(availableDuration);
-        console.log('availableDuration:', availableDuration);
-    }, [availableDuration, routeNewTimer]);
-
-    const [nowSetting, setNowSetting] = useState(null);
-
-    const calculateAndSetAvailableDuration = (duration, setAll = false) => {
-
-        console.log('nowSetting:', nowSetting);
-        const totalSeconds = Math.floor(duration / 1000);
-        const totalMinutes = Math.floor(totalSeconds / 60);
-        const totalHours = Math.floor(totalMinutes / 60);
-
-        const hoursArray = Array.from({ length: totalHours + 1 }, (_, index) => index);
-        const minutesArray = Array.from({ length: Math.min(60, totalMinutes + 1) }, (_, index) => index);
-        const secondsArray = Array.from({ length: Math.min(60, totalSeconds + 1) }, (_, index) => index);
-
-
-        if (setAll) {
-            setHours(hoursArray);
-            setMinutes(minutesArray);
-            setSeconds(secondsArray);
-        }
-
-        if (nowSetting === 'hour') {
-            setMinutes(minutesArray);
-            setSeconds(secondsArray);
-        } else if (nowSetting === 'minute') {
-            setHours(hoursArray);
-            setSeconds(secondsArray);
-        } else if (nowSetting === 'second') {
-            setHours(hoursArray);
-            setMinutes(minutesArray);
-        } else {
-            setHours(hoursArray);
-            setMinutes(minutesArray);
-            setSeconds(secondsArray);
-        }
-    };
 
     let changeTimeoutIds = {
         hour: null,
@@ -286,7 +268,6 @@ const Edit = () => {
         }
 
         changeTimeoutIds[changing] = setTimeout(() => {
-            setNowSetting(changing);
             setDuration(prevDuration => ({
                 ...prevDuration,
                 [changing]: item.value
@@ -305,6 +286,8 @@ const Edit = () => {
     }
 
 
+    const blockHeightThreshold = 300000;
+    const blockHeightRatio = 5000;
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.breakpointContainer} showsVerticalScrollIndicator={false}>
@@ -334,8 +317,8 @@ const Edit = () => {
                                         style={[
                                             styles.breakPointBlock,
                                             editingBreakpoint === index && { backgroundColor: colors.lightRed },
-                                            { height: breakpoint.duration > 600000 ? breakpoint.duration / 10000 : 60 },
-                                            { justifyContent: breakpoint.duration > 600000 ? 'flex-start' : 'center' }
+                                            { height: breakpoint.duration > blockHeightThreshold ? breakpoint.duration / blockHeightRatio : 60 },
+                                            { justifyContent: breakpoint.duration > blockHeightThreshold ? 'flex-start' : 'center' }
                                         ]}
                                         onPress={() => handleBreakpointClick(index)}
                                     >
@@ -344,7 +327,9 @@ const Edit = () => {
                                 </View>
                                 <View style={styles.breakPointLineContainer}>
                                     <View style={[styles.breakPointIndicator, editingBreakpoint === index ? { backgroundColor: colors.red } : { backgroundColor: colors.black }]}>
-                                        {breakpoint.endAt === newTimer.duration ?
+                                        {((breakpoint.endAt >= newTimer.duration) 
+                                        && ( index === newTimer.breakPoints.length - 1) 
+                                        && (breakpoint.startAt !== newTimer.duration)) ?
                                             (
                                                 <Text style={styles.breakPointIndicatorText}>
                                                     End

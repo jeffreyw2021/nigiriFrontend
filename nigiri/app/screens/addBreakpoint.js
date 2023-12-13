@@ -336,6 +336,8 @@ const AddBreakpoint = () => {
     }, [timers]);
 
 
+    const blockHeightThreshold = 300000;
+    const blockHeightRatio = 5000;
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.breakpointContainer} showsVerticalScrollIndicator={false}>
@@ -365,8 +367,8 @@ const AddBreakpoint = () => {
                                         style={[
                                             styles.breakPointBlock,
                                             editingBreakpoint === index && { backgroundColor: colors.lightRed },
-                                            { height: breakpoint.duration > 600000 ? breakpoint.duration / 10000 : 60 },
-                                            { justifyContent: breakpoint.duration > 600000 ? 'flex-start' : 'center' }
+                                            { height: breakpoint.duration > blockHeightThreshold ? breakpoint.duration / blockHeightRatio : 60 },
+                                            { justifyContent: breakpoint.duration > blockHeightThreshold ? 'flex-start' : 'center' }
                                         ]}
                                         onPress={() => handleBreakpointClick(index)}
                                     >

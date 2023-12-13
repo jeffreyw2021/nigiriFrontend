@@ -145,7 +145,7 @@ const Detail = () => {
     }
     const handleEdit = () => {
         console.log('sending timer:', newTimer);
-        navigation.navigate('Edit', { timer: newTimer });
+        navigation.navigate('EditInfo', { timer: newTimer });
     }
 
     // ========== Time Picker ========== //

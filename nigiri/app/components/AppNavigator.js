@@ -6,6 +6,7 @@ import Add from '../screens/add';
 import Vibration from '../components/vibration';
 import AddBreakpoint from '../screens/addBreakpoint';
 import Detail from '../screens/detail';
+import EditInfo from '../screens/editInfo';
 import Edit from '../screens/edit';
 import { NavigationContainer } from '@react-navigation/native';
 
@@ -51,6 +52,7 @@ const AppNavigator = () => {
         <Stack.Screen name="AddBreakpoint" component={AddBreakpoint} />
         <Stack.Screen name="Vibration" component={Vibration} options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }} />
         <Stack.Screen name="Detail" component={Detail} />
+        <Stack.Screen name="EditInfo" component={EditInfo} />
         <Stack.Screen name="Edit" component={Edit} />
       </Stack.Navigator>
     </NavigationContainer>
