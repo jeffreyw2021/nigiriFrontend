@@ -9,8 +9,7 @@ const styles = StyleSheet.create({
     container: {
         height: height,
         width: width,
-        paddingLeft: 30,
-        paddingRight: 30,
+        paddingHorizontal: 25,
         backgroundColor: colors.white,
         justifyContent: 'flex-start',
         alignItems: 'center',
@@ -79,7 +78,7 @@ const styles = StyleSheet.create({
         paddingBottom: 60,
     },
     timerBlock: {
-        width: (width - 70)/2,
+        width: (width - 60)/2,
         height: (width - 70)/2,
         backgroundColor: colors.smokeWhite,
         justifyContent: 'flex-start',

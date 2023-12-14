@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import colors from '../styles/colors';
 import styles from '../styles/addStyle';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import WheelPickerExpo from 'react-native-wheel-picker-expo';
 import InsetShadow from 'react-native-inset-shadow';
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
@@ -13,7 +12,7 @@ const EditInfo = () => {
 
     // ========== Initiation ========== //
     const navigation = useNavigation();
-    const route = useRoute();  
+    const route = useRoute();
     const [newTimer, setNewTimer] = useState({
         id: '',
         createdAt: Date.now(),
@@ -22,14 +21,55 @@ const EditInfo = () => {
         vibration: 'Alarm',
         breakPoints: []
     });
-    useEffect(()=>{
+    useEffect(() => {
         console.log("newTimer:", newTimer);
-    },[newTimer])
+    }, [newTimer]);
+
+    const formatDuration = (milliseconds) => {
+        const seconds = Math.floor((milliseconds / 1000) % 60);
+        const minutes = Math.floor((milliseconds / (1000 * 60)) % 60);
+        const hours = Math.floor((milliseconds / (1000 * 60 * 60)) % 24);
+
+        if (hours === 0 && minutes === 0 && seconds !== 0) {
+            return `${seconds} sec`;
+        } else if (hours === 0 && seconds !== 0 && minutes !== 0) {
+            return `${minutes} min ${seconds} sec`;
+        } else if (seconds === 0 && minutes !== 0 && hours !== 0) {
+            return `${hours} h ${minutes} min`;
+        } else if (hours === 0 && seconds === 0 && minutes !== 0) {
+            return `${minutes} min`;
+        } else if (minutes === 0 && seconds === 0 && hours !== 0) {
+            return `${hours} h`;
+        } else if (hours === 0 && minutes === 0 && seconds === 0) {
+            return `0 sec`;
+        } else {
+            return `${hours} h ${minutes} min ${seconds} sec`;
+        }
+    };
+    const isTitleInDurationFormat = (title) => {
+        const hourRegex = /(\d{1,2}) h/;
+        const minuteRegex = /(\d{1,2}) min/;
+        const secondRegex = /(\d{1,2}) sec/;
+    
+        const hourMatch = title.match(hourRegex);
+        const minuteMatch = title.match(minuteRegex);
+        const secondMatch = title.match(secondRegex);
+    
+        const hour = hourMatch ? parseInt(hourMatch[1], 10) : null;
+        const minute = minuteMatch ? parseInt(minuteMatch[1], 10) : null;
+        const second = secondMatch ? parseInt(secondMatch[1], 10) : null;
+    
+        if (hour !== null && (hour < 0 || hour > 9)) return false;
+        if (minute !== null && (minute < 0 || minute > 59)) return false;
+        if (second !== null && (second < 0 || second > 59)) return false;
+    
+        return true;
+    };
 
     // ========== Time Wheel Picker ========== //
-    const Hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-    const Minutes = Array.from({ length: 60 }, (_, index) => index);
-    const Seconds = Array.from({ length: 60 }, (_, index) => index);
+    const [Hours, setHours] = useState([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const [Minutes, setMinutes] = useState(Array.from({ length: 60 }, (_, index) => index));
+    const [Seconds, setSeconds] = useState(Array.from({ length: 60 }, (_, index) => index));
     const [duration, setDuration] = useState({
         hour: 0,
         minute: 1,
@@ -45,21 +85,14 @@ const EditInfo = () => {
         const durationInMilliseconds = hourInMilliseconds + minuteInMilliseconds + secondInMilliseconds;
         setDurationInMilliseconds(durationInMilliseconds);
     }, [duration]);
-    useEffect(() => {
-        setNewTimer(prevTimer => ({
-            ...prevTimer,
-            duration: durationInMilliseconds
-        }));
-        console.log(durationInMilliseconds);
-    }, [durationInMilliseconds]);
     const convertMillisecondsToTimeObject = (milliseconds) => {
         const seconds = Math.floor((milliseconds / 1000) % 60);
         const minutes = Math.floor((milliseconds / (1000 * 60)) % 60);
         const hours = Math.floor((milliseconds / (1000 * 60 * 60)) % 24);
-    
+
         return { hour: hours, minute: minutes, second: seconds };
     };
-    
+
 
     // ========== Vibration ========== //
     const routeVibration = route.params?.vibration;
@@ -77,23 +110,58 @@ const EditInfo = () => {
     const [initalHourSpinnerIndex, setInitalHourSpinnerIndex] = useState(0);
     const [initalMinuteSpinnerIndex, setInitalMinuteSpinnerIndex] = useState(1);
     const [initalSecondSpinnerIndex, setInitalSecondSpinnerIndex] = useState(0);
-    
+
     const routeNewTimer = route.params?.timer;
+    // Calculate durationInMilliseconds based on the updated duration state
     useEffect(() => {
-        console.log('routeNewTimer:', routeNewTimer);
+        const hourInMilliseconds = duration.hour * 60 * 60 * 1000;
+        const minuteInMilliseconds = duration.minute * 60 * 1000;
+        const secondInMilliseconds = duration.second * 1000;
+        const totalDurationInMilliseconds = hourInMilliseconds + minuteInMilliseconds + secondInMilliseconds;
+        setDurationInMilliseconds(totalDurationInMilliseconds);
+    }, [duration, newTimer.title]);    
+
+    // Update newTimer duration when durationInMilliseconds changes
+    useEffect(() => {
+        const formattedTitle = formatDuration(durationInMilliseconds);
+        const timerTitle = newTimer.title;
+        const timeout = setTimeout(() => {
+            setNewTimer(prevTimer => ({
+                ...prevTimer,
+                title: isTitleInDurationFormat(timerTitle) ? formattedTitle : timerTitle,
+                duration: durationInMilliseconds
+            }));
+        }, 500);
+
+        return () => clearTimeout(timeout);
+    }, [durationInMilliseconds]);
+    // useEffect(() => {
+    //     if (routeNewTimer) {
+    //         const times = convertMillisecondsToTimeObject(routeNewTimer.duration);
+
+    //         // Generate arrays for hours, minutes, and seconds based on the times object
+    //         const newHours = Array.from({ length: 10 - times.hour }, (_, i) => i + times.hour);
+    //         const newMinutes = Array.from({ length: 60 - times.minute }, (_, i) => i + times.minute);
+    //         const newSeconds = Array.from({ length: 60 - times.second }, (_, i) => i + times.second);
+
+    //         // Update state arrays
+    //         setHours(newHours);
+    //         setMinutes(newMinutes);
+    //         setSeconds(newSeconds);
+    //     }
+    // }, [routeNewTimer]);    
+    useEffect(() => {
         if (routeNewTimer) {
-            const routeNewTimerTimes = convertMillisecondsToTimeObject(routeNewTimer.duration);
-            const initialHourSpinnerIndex = Hours.findIndex(hour => hour === routeNewTimerTimes.hour);
-            const initialMinuteSpinnerIndex = Minutes.findIndex(minute => minute === routeNewTimerTimes.minute);
-            const initialSecondSpinnerIndex = Seconds.findIndex(second => second === routeNewTimerTimes.second);
-            setInitalHourSpinnerIndex(initialHourSpinnerIndex);
-            setInitalMinuteSpinnerIndex(initialMinuteSpinnerIndex);
-            setInitalSecondSpinnerIndex(initialSecondSpinnerIndex);
+            const times = convertMillisecondsToTimeObject(routeNewTimer.duration);
+            setDuration(times);
+            setInitalHourSpinnerIndex(Hours.findIndex(hour => hour === times.hour));
+            setInitalMinuteSpinnerIndex(Minutes.findIndex(minute => minute === times.minute));
+            setInitalSecondSpinnerIndex(Seconds.findIndex(second => second === times.second));
             setNewTimer(routeNewTimer);
         }
-    }, [routeNewTimer]);
+    }, [routeNewTimer, Hours, Minutes, Seconds]);
     const handleCancel = () => {
-        const timer = route.params?.timer;
+        const timer = route.params?.timer.id;
         navigation.navigate('Detail', { timer });
     }
     const routeBreakPoints = route.params?.savedBreakpoints;
@@ -107,16 +175,47 @@ const EditInfo = () => {
         console.log(routeBreakPoints);
     }, [routeBreakPoints]);
     const handleNext = () => {
-        if(newTimer.duration === 0){
-            alert('Please set a duration for the timer.'); 
+        if (newTimer.duration === 0) {
+            alert('Please set a duration for the timer.');
             return;
         }
+
+        const newTimerBreakpoints = newTimer.breakPoints;
+        const newTimerDuration = newTimer.duration;
+        let isOverflown = false;
+
+        for (let i = 0; i < newTimerBreakpoints.length; i++) {
+            if (newTimerBreakpoints[i].startAt > newTimerDuration || newTimerBreakpoints[i].endAt > newTimerDuration) {
+                isOverflown = true;
+                break;
+            }
+        }
+
+        if (isOverflown) {
+            Alert.alert(
+                '',
+                `Intervals exceeding the timer's duration will be adjusted or removed. Do you wish to Proceed?`,
+                [
+                    { text: 'Cancel', onPress: () => console.log('Review Pressed'), style: 'cancel' },
+                    { text: 'Proceed', onPress: () => navigateToEdit() },
+                ],
+                { cancelable: false }
+            );
+            return;
+        } else {
+            navigateToEdit();
+        }
+    };
+    const navigateToEdit = () => {
         const timer = newTimer;
+        if (newTimer.title === '') {
+            timer = { ...newTimer, title: formatDuration(newTimer.duration) };
+        }
         navigation.navigate('Edit', { timer });
-    }
+    };
     const handleVibration = () => {
         const from = 'EditInfo';
-        navigation.navigate('Vibration', {from});
+        navigation.navigate('Vibration', { from });
     }
 
     return (
@@ -258,6 +357,7 @@ const EditInfo = () => {
                                     ...prevTimer,
                                     title: text
                                 }));
+                                setCustomizedTitle(true);
                             }}
                             selectionColor={colors.darkGray}
                             value={newTimer.title}

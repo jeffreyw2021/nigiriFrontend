@@ -5,10 +5,11 @@ import colors from '../styles/colors';
 import styles from '../styles/breakpointStyle';
 import DashedLine from '../components/dashedLine';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import WheelPickerExpo from 'react-native-wheel-picker-expo';
 import InsetShadow from 'react-native-inset-shadow';
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
-import { faAngleDown, faPlus, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faTrashCan, faPlus, faXmark, faTrash } from "@fortawesome/free-solid-svg-icons";
 
 const AddBreakpoint = () => {
 
@@ -128,8 +129,13 @@ const AddBreakpoint = () => {
 
     // ========== Navigation ========== //
     const handleBack = () => {
+        handleCloseModal();
         // Filter out breakpoints with a duration of 0
-        const savedBreakpoints = newTimer.breakPoints.filter(breakPoint => breakPoint.duration !== 0);
+        let savedBreakpoints = newTimer.breakPoints.filter(breakPoint => breakPoint.duration !== 0);
+        savedBreakpoints = savedBreakpoints.map(bp => ({
+            ...bp,
+            endAt: bp.startAt + bp.duration
+        }));
         navigation.navigate('Add', { savedBreakpoints });
     }
 
@@ -152,24 +158,47 @@ const AddBreakpoint = () => {
 
     const [editingBreakpoint, setEditingBreakpoint] = useState(null);
     const handleBreakpointClick = (index) => {
-        if (index === editingBreakpoint) {
-            setEditingBreakpoint(null);
-        } else {
-            setEditingBreakpoint(index);
-            const selectedBreakpointDuration = newTimer.breakPoints[index].duration;
+        const newTimerBreakpoints = [...newTimer.breakPoints];
+        const thereisDurationZeroBPinNewTimer = newTimerBreakpoints.some(breakpoint => breakpoint.duration === 0);
+        if (!thereisDurationZeroBPinNewTimer) {
+            if (index === editingBreakpoint) {
+                setEditingBreakpoint(null);
+            } else {
+                setEditingBreakpoint(index);
+                const selectedBreakpointDuration = newTimer.breakPoints[index].duration;
 
-            const hour = Math.floor((selectedBreakpointDuration / (1000 * 60 * 60)) % 24);
-            const minute = Math.floor((selectedBreakpointDuration / (1000 * 60)) % 60);
-            const second = Math.floor((selectedBreakpointDuration / 1000) % 60);
+                const hour = Math.floor((selectedBreakpointDuration / (1000 * 60 * 60)) % 24);
+                const minute = Math.floor((selectedBreakpointDuration / (1000 * 60)) % 60);
+                const second = Math.floor((selectedBreakpointDuration / 1000) % 60);
 
-            setDuration({ hour, minute, second });
+                setDuration({ hour, minute, second });
 
-            setSpinnerHourStartAt(Hours.findIndex(h => h === hour));
-            setSpinnerMinuteStartAt(Minutes.findIndex(m => m === minute));
-            setSpinnerSecondStartAt(Seconds.findIndex(s => s === second));
+                setSpinnerHourStartAt(Hours.findIndex(h => h === hour));
+                setSpinnerMinuteStartAt(Minutes.findIndex(m => m === minute));
+                setSpinnerSecondStartAt(Seconds.findIndex(s => s === second));
+            }
         }
     };
     const handleCloseModal = () => {
+        setOverflowBreakPoint(null);
+        const currentEditingBreakpointDuration = duration.hour * 3600000 + duration.minute * 60000 + duration.second * 1000;
+        const otherBreakPointDuration = newTimer.breakPoints.reduce((acc, breakPoint, index) => {
+            if (index !== editingBreakpoint) {
+                return acc + breakPoint.duration;
+            }
+            return acc;
+        }, 0);
+        const totalEditedDuration = currentEditingBreakpointDuration + otherBreakPointDuration;
+
+        if (totalEditedDuration > newTimer.duration) {
+            const remainingDuration = newTimer.duration - otherBreakPointDuration;
+            newTimer.breakPoints[editingBreakpoint].duration = remainingDuration;
+            finalizeEditing();
+        } else {
+            finalizeEditing();
+        }
+    };
+    const finalizeEditing = () => {
         setEditingBreakpoint(null);
         setDuration({
             hour: 0,
@@ -184,7 +213,6 @@ const AddBreakpoint = () => {
                 }
             }
         }
-        setNowSetting(null);
     }
     useEffect(() => {
         console.log('editingBreakpoint:', editingBreakpoint);
@@ -246,13 +274,6 @@ const AddBreakpoint = () => {
         const totalBreakpointsDuration = newTimer.breakPoints.reduce((acc, bp) => acc + bp.duration, 0);
         return newTimer.duration - totalBreakpointsDuration;
     }, [newTimer]);
-    useEffect(() => {
-        // if (availableDuration === 0) {
-        //     calculateAndSetAvailableDuration(availableDuration, true);
-        // }
-        calculateAndSetAvailableDuration(availableDuration);
-        console.log('availableDuration:', availableDuration);
-    }, [availableDuration]);
 
     const [nowSetting, setNowSetting] = useState(null);
 
@@ -312,11 +333,25 @@ const AddBreakpoint = () => {
 
     // ========== Create ========== //
     const handleCreate = () => {
-        setTimers(prevTimers => {
-            const updatedTimers = [...prevTimers, newTimer];
-            AsyncStorage.setItem('timers', JSON.stringify(updatedTimers));
-            return updatedTimers;
-        });
+        handleCloseModal();
+        const savedBreakpoints = newTimer.breakPoints.filter(breakPoint => breakPoint.duration !== 0)
+            .map(bp => ({
+                ...bp,
+                endAt: bp.startAt + bp.duration
+            }));
+
+        const timer = {
+            ...newTimer,
+            breakPoints: savedBreakpoints
+        };
+
+        const updatedTimers = [...timers];
+        updatedTimers.push(timer);
+
+        setTimers(updatedTimers);
+        AsyncStorage.setItem('timers', JSON.stringify(updatedTimers))
+            .then(() => console.log('Timers updated in AsyncStorage'))
+            .catch(error => console.error('Error updating AsyncStorage:', error));
         navigation.navigate('Home');
     }
     useEffect(() => {
@@ -335,9 +370,60 @@ const AddBreakpoint = () => {
         });
     }, [timers]);
 
+    const [overflowBreakPoint, setOverflowBreakPoint] = useState(null);
+    useEffect(() => {
+        if (editingBreakpoint !== null) {
+            const currentEditingBreakpointDuration = duration.hour * 3600000 + duration.minute * 60000 + duration.second * 1000;
+            const otherBreakPointDuration = newTimer.breakPoints.reduce((acc, breakPoint, index) => {
+                if (index !== editingBreakpoint) {
+                    return acc + breakPoint.duration;
+                }
+                return acc;
+            }, 0);
+            const totalEditedDuration = currentEditingBreakpointDuration + otherBreakPointDuration;
+            if (totalEditedDuration > newTimer.duration) {
+                setOverflowBreakPoint(editingBreakpoint);
+            }
+        }
+    }, [editingBreakpoint, duration]);
 
     const blockHeightThreshold = 300000;
     const blockHeightRatio = 5000;
+
+    
+    const deleteBreakpoint = (index) => {
+        setNewTimer(prevTimer => {
+            const updatedBreakpoints = [...prevTimer.breakPoints];
+            updatedBreakpoints.splice(index, 1);
+    
+            // Recalculate the startAt and endAt for subsequent breakpoints
+            let cumulativeStartAt = 0;
+            for (let i = 0; i < updatedBreakpoints.length; i++) {
+                updatedBreakpoints[i].startAt = cumulativeStartAt;
+                updatedBreakpoints[i].endAt = cumulativeStartAt + updatedBreakpoints[i].duration;
+                cumulativeStartAt += updatedBreakpoints[i].duration;
+            }
+    
+            return { ...prevTimer, breakPoints: updatedBreakpoints };
+        });
+    
+        // Reset all Swipeable positions
+        swipeableRefs.current.forEach(ref => {
+            if (ref) ref.close();
+        });
+    };    
+    const swipeableRefs = useRef([]);
+    const renderRightActions = (progress, dragX, breakpointIndex) => {
+        return (
+            <TouchableOpacity
+                style={styles.swipeableRight}
+                onPress={() => deleteBreakpoint(breakpointIndex)}
+            >
+                <FontAwesomeIcon icon={faTrash} size={16} color={colors.white} />
+            </TouchableOpacity>
+        );
+    };
+    
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.breakpointContainer} showsVerticalScrollIndicator={false}>
@@ -363,21 +449,31 @@ const AddBreakpoint = () => {
                         {newTimer.breakPoints.map((breakpoint, index) => (
                             <View key={index} style={[styles.breakPointObject, { zIndex: newTimer.breakPoints.length - index }]}>
                                 <View style={styles.breakPointBlockContainer}>
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.breakPointBlock,
-                                            editingBreakpoint === index && { backgroundColor: colors.lightRed },
-                                            { height: breakpoint.duration > blockHeightThreshold ? breakpoint.duration / blockHeightRatio : 60 },
-                                            { justifyContent: breakpoint.duration > blockHeightThreshold ? 'flex-start' : 'center' }
-                                        ]}
-                                        onPress={() => handleBreakpointClick(index)}
-                                    >
-                                        <Text style={[styles.breakPointText, editingBreakpoint === index && { color: colors.red }]}>{formatDuration(breakpoint.duration)}</Text>
-                                    </TouchableOpacity>
+                                    <View style={{ width: '100%', overflow: 'hidden', borderRadius: 12, backgroundColor: colors.red }} key={breakpoint.id}>
+                                        <Swipeable
+                                            key={index}
+                                            ref={ref => swipeableRefs.current[index] = ref}
+                                            renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, index)}
+                                            style={styles.swipeable}
+                                        >
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.breakPointBlock,
+                                                    editingBreakpoint === index && (overflowBreakPoint === index ? { backgroundColor: colors.lightRed } : { backgroundColor: colors.Gray2 }),
+                                                    { height: breakpoint.duration > blockHeightThreshold ? breakpoint.duration / blockHeightRatio : 60 },
+                                                    { justifyContent: breakpoint.duration > blockHeightThreshold ? 'flex-start' : 'center' }
+                                                ]}
+                                                onPress={() => handleBreakpointClick(index)}
+                                                activeOpacity={1}
+                                            >
+                                                <Text style={[styles.breakPointText, overflowBreakPoint === index && { color: colors.red }]}>{formatDuration(breakpoint.duration)}</Text>
+                                            </TouchableOpacity>
+                                        </Swipeable>
+                                    </View>
                                 </View>
                                 <View style={styles.breakPointLineContainer}>
-                                    <View style={[styles.breakPointIndicator, editingBreakpoint === index ? { backgroundColor: colors.red } : { backgroundColor: colors.black }]}>
-                                        {breakpoint.endAt === newTimer.duration ?
+                                    <View style={[styles.breakPointIndicator, overflowBreakPoint === index ? { backgroundColor: colors.red } : { backgroundColor: colors.black }]}>
+                                        {breakpoint.endAt >= newTimer.duration ?
                                             (
                                                 <Text style={styles.breakPointIndicatorText}>
                                                     End
@@ -390,12 +486,12 @@ const AddBreakpoint = () => {
                                         }
                                     </View>
                                     <View style={styles.lineContainer}>
-                                        <DashedLine dashWidth={5} dashGap={5} dashColor={editingBreakpoint === index ? colors.red : colors.black} />
+                                        <DashedLine dashWidth={5} dashGap={5} dashColor={overflowBreakPoint === index ? colors.red : colors.black} />
                                     </View>
                                 </View>
                             </View>
                         ))}
-                        {editingBreakpoint === null && availableDuration !== 0 && (
+                        {editingBreakpoint === null && availableDuration > 0 && (
                             <View style={styles.breakPointBlockContainer}>
                                 <TouchableOpacity
                                     style={[styles.AddFirstBreakpoint, { height: 50 }]}

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, Vibration } from 'react-native';
 import styles from '../styles/vibrationStyle';
 import colors from '../styles/colors';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import vibrationPatterns from './vibrationCollection';
 
-const Vibration = () => {
+const VibrationSelect = () => {
 
     // ========== Initiation ========== //
     const navigation = useNavigation();
@@ -13,12 +13,15 @@ const Vibration = () => {
     const routeFrom = route.params?.from;
 
     // ========== Vibration ========== //
-    const [vibration, setVibration] = useState('Alarm');
+    const [selectedVibration, setSelectedVibration] = useState('Alarm');
+
     const handleSelectVibration = () => {
+        console.log('selectedVibration', selectedVibration);
         if (routeFrom === 'EditInfo') {
-            navigation.navigate('EditInfo', { vibration });
+            navigation.navigate('EditInfo', { vibration: selectedVibration });
         } else {
-            navigation.navigate('Add', { vibration });
+
+            navigation.navigate('Add', { vibration: selectedVibration });
         }
     };
     const handleBack = () => {
@@ -45,10 +48,13 @@ const Vibration = () => {
                     <TouchableOpacity
                         style={[styles.selectionRow, index === array.length - 1 && { borderBottomWidth: 0 }]}
                         key={title}
-                        onPress={() => setVibration(title)}
+                        onPress={() => {
+                            Vibration.vibrate(vibrationPatterns[title]);
+                            setSelectedVibration(title);
+                        }}
                     >
                         <View style={styles.selectionRadio}>
-                            {vibration === title && (<View style={styles.selectionRadioActive}></View>)}
+                            {selectedVibration === title && (<View style={styles.selectionRadioActive}></View>)}
                         </View>
                         <Text style={styles.selectionTitle}>{title}</Text>
                     </TouchableOpacity>
@@ -58,4 +64,4 @@ const Vibration = () => {
     );
 };
 
-export default Vibration;
+export default VibrationSelect;

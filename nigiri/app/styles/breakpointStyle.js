@@ -1,47 +1,47 @@
-import { StyleSheet, Dimensions} from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import colors from './colors';
 import fontSize from './fontSize';
 
 const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
-    container:{
+    container: {
         height: height,
         width: width,
         backgroundColor: colors.white,
     },
-    breakpointContainer:{
+    breakpointContainer: {
         width: '100%',
         paddingHorizontal: 30,
-        paddingTop:80,
+        paddingTop: 80,
         paddingBottom: 240,
         backgroundColor: colors.white,
         rowGap: 22,
     },
-    breakpointTitleContainer:{
+    breakpointTitleContainer: {
         width: '100%',
         alignItems: 'flex-start',
         justifyContent: 'center',
     },
-    breakpointTitle:{
+    breakpointTitle: {
         color: colors.Gray3,
         fontSize: fontSize.xlarge,
         fontWeight: '600',
     },
 
-    bodyTextContainer:{
+    bodyTextContainer: {
         height: height - 480,
-        width: '100%', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+        width: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
         paddingHorizontal: 50
     },
 
-    breakpointBodyContainer:{
+    breakpointBodyContainer: {
         alignItems: 'center',
         justifyContent: 'flex-start',
     },
-    AddFirstBreakpoint:{
+    AddFirstBreakpoint: {
         width: '100%',
         height: 100,
         alignItems: 'center',
@@ -49,29 +49,29 @@ const styles = StyleSheet.create({
         backgroundColor: colors.Gray1,
         borderRadius: 12,
     },
-    breakPointObject:{
+    breakPointObject: {
         width: '100%',
         justifyContent: 'flex-start',
         rowGap: 3,
     },
-    breakPointBlockContainer:{
+    breakPointBlockContainer: {
         width: '100%',
         paddingLeft: 50,
     },
-    breakPointBlock:{
+    breakPointBlock: {
         height: 60,
         padding: 12,
-        alignItems:'flex-start',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         backgroundColor: colors.smokeWhite,
-        borderRadius: 12
+        borderRadius:0
     },
-    breakPointText:{
+    breakPointText: {
         fontSize: fontSize.xlarge,
         fontWeight: '500',
         color: colors.black
     },
-    breakPointLineContainer:{
+    breakPointLineContainer: {
         width: '100%',
         height: 2,
         flexDirection: 'row',
@@ -81,10 +81,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'flex-start',
     },
-    lineContainer:{
+    lineContainer: {
         flex: 1,
     },
-    breakPointIndicator:{
+    breakPointIndicator: {
         height: 20,
         minWidth: 50,
         alignItems: 'center',
@@ -94,12 +94,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 6,
         borderRadius: 20,
     },
-    breakPointIndicatorText:{
+    breakPointIndicatorText: {
         color: colors.white,
         fontSize: fontSize.small,
     },
 
-    editingContainer:{
+    editingContainer: {
         width: '100%',
         backgroundColor: colors.white,
         paddingHorizontal: 20,
@@ -110,27 +110,27 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'flex-start',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -1 }, 
-        shadowOpacity: 0.10, 
+        shadowOffset: { width: 0, height: -1 },
+        shadowOpacity: 0.10,
         shadowRadius: 2,
         elevation: 3,
     },
-    timeSelectContainer:{
+    timeSelectContainer: {
         width: 250,
         flexDirection: 'row',
         justifyContent: 'flex-start',
         columnGap: 10,
     },
-    timeSelectModule:{
+    timeSelectModule: {
         flex: 1,
         rowGap: 2,
     },
-    timeSelectTiteContainer:{
+    timeSelectTiteContainer: {
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    timePickerTitle:{
+    timePickerTitle: {
         fontSize: fontSize.medium,
         fontWeight: '500',
     },
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
         color: colors.black,
         textAlign: 'center'
     },
-    downButton:{
+    downButton: {
         position: 'absolute',
         right: 10,
         top: 10,
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
-    bottomContainer:{
+    bottomContainer: {
         position: 'absolute',
         width: width,
         bottom: 0,
@@ -190,22 +190,39 @@ const styles = StyleSheet.create({
         paddingBottom: 60,
         backgroundColor: colors.white,
         shadowColor: '#333',
-        shadowOffset: { width: 0, height: -1 }, 
-        shadowOpacity: 0.10, 
+        shadowOffset: { width: 0, height: -1 },
+        shadowOpacity: 0.10,
         shadowRadius: 2,
         elevation: 3,
     },
-    bottomButton:{
-        flex:1,
+    bottomButton: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 10,
         backgroundColor: colors.Gray1,
         borderRadius: 8,
     },
-    bottomButtonText:{
+    bottomButtonText: {
         color: colors.black,
         fontSize: fontSize.large,
+    },
+
+    swipeable: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        width: '100%',
+        height: 60,
+        padding: 0,
+        marginRight: -10
+    },
+    swipeableRight: {
+        height: '100%',
+        width: 50,
+        backgroundColor: colors.red,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
 

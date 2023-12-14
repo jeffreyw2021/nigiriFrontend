@@ -43,21 +43,35 @@ const Detail = () => {
     const routeNewTimer = route.params?.timer;
     useEffect(() => {
         if (routeNewTimer) {
-            if (routeNewTimer.title === '') {
-                const newTitle = formatDuration(routeNewTimer.duration);
-                setNewTimer(prevTimer => ({
-                    ...routeNewTimer,
-                    title: newTitle,
-                    createdAt: Date.now(),
-                }));
+            // Check if routeNewTimer is an object
+            if (typeof routeNewTimer === 'object' && routeNewTimer !== null) {
+                if (routeNewTimer.duration && routeNewTimer.breakPoints && routeNewTimer.vibration && routeNewTimer.title && routeNewTimer.createdAt) {
+                    if (routeNewTimer.title === '') {
+                        const newTitle = formatDuration(routeNewTimer.duration);
+                        setNewTimer(prevTimer => ({
+                            ...routeNewTimer,
+                            title: newTitle,
+                            createdAt: Date.now(),
+                        }));
+                    } else {
+                        setNewTimer(prevTimer => ({
+                            ...routeNewTimer,
+                            createdAt: Date.now(),
+                        }));
+                    }
+                }
             } else {
-                setNewTimer(prevTimer => ({
-                    ...routeNewTimer,
-                    createdAt: Date.now(),
-                }));
+                // Assuming routeNewTimer is a string (ID of the timer)
+                for (let i = 0; i < timers.length; i++) {
+                    if (timers[i].id === routeNewTimer) {
+                        setNewTimer(timers[i]);
+                        break;
+                    }
+                }
             }
         }
-    }, [routeNewTimer]);
+    }, [routeNewTimer, timers]);
+
 
     const prevBreakPointsRef = useRef();
     const didDurationChange = (currentBreakpoints, prevBreakpoints) => {
@@ -214,10 +228,6 @@ const Detail = () => {
                     });
                 }
 
-                if (vibrationPoints.includes(elapsed * 1000)) {
-                    Vibration.vibrate(pattern);
-                }
-
                 if (elapsed >= timerDurationCollection.reduce((a, b) => a + b, 0) / 1000) {
                     clearInterval(intervalId);
                     setplayMode('restart');
@@ -301,15 +311,17 @@ const Detail = () => {
 
     // const [showTickPointer, setShowTickPointer] = useState(false);
     useEffect(() => {
-        if ((vibrationPoints.includes(elapsedTime * 1000)) || ((elapsedTime * 1000) >= newTimer.duration)) {
+        if ((vibrationPoints.includes(elapsedTime * 1000))) {
             Vibration.vibrate(pattern);
+        }
+        if ((elapsedTime * 1000) >= newTimer.duration) {
+            Vibration.vibrate(4500);
         }
     }, [elapsedTime, vibrationPoints, pattern]);
     const vibrationPoints = useMemo(() => {
-        const newTimer = routeNewTimer || newTimer;
         const vibrations = newTimer.breakPoints.map(breakpoint => breakpoint.endAt);
         return vibrations;
-    }, [routeNewTimer.breakPoints]);
+    }, [newTimer.breakPoints]);
 
     // ========== Render ========== //
     const progressLineWidth = 2000;
@@ -396,29 +408,39 @@ const Detail = () => {
                                 <View
                                     style={[
                                         styles.breakPointBlock,
+                                        (breakpoint.startAt < elapsedTime * 1000)
+                                        && (breakpoint.endAt < elapsedTime * 1000
+                                            ? { backgroundColor: colors.smokeWhite }
+                                            : { backgroundColor: colors.lightRed }),
                                         { height: breakpoint.duration > blockHeightThreshold ? breakpoint.duration / blockHeightRatio : 60 },
                                         { justifyContent: breakpoint.duration > blockHeightThreshold ? 'flex-start' : 'center' }
                                     ]}
                                 >
-                                    <Text style={[styles.breakPointText]}>{formatDuration(breakpoint.duration)}</Text>
+                                    <Text style={[
+                                        styles.breakPointText,
+                                        (breakpoint.startAt < elapsedTime * 1000)
+                                        && (breakpoint.endAt < elapsedTime * 1000
+                                            ? { color: colors.black }
+                                            : { color: colors.red })
+                                    ]}>{formatDuration(breakpoint.duration)}</Text>
                                 </View>
                             </View>
                             <View style={styles.breakPointLineContainer}>
-                                <View style={styles.breakPointIndicator}>
-                                    {breakpoint.endAt === newTimer.duration ?
+                                <View style={[styles.breakPointIndicator, (breakpoint.endAt < elapsedTime * 1000) && { backgroundColor: colors.red }]}>
+                                    {breakpoint.endAt >= newTimer.duration ?
                                         (
-                                            <Text style={styles.breakPointIndicatorText}>
+                                            <Text style={[styles.breakPointIndicatorText, (breakpoint.endAt < elapsedTime * 1000) && { color: colors.white }]}>
                                                 End
                                             </Text>
                                         ) : (
-                                            <Text style={styles.breakPointIndicatorText}>
+                                            <Text style={[styles.breakPointIndicatorText, (breakpoint.endAt < elapsedTime * 1000) && { color: colors.white }]}>
                                                 {formatDuration(breakpoint.endAt)}
                                             </Text>
                                         )
                                     }
                                 </View>
                                 <View style={styles.lineContainer}>
-                                    <DashedLine dashWidth={5} dashGap={5} dashColor={colors.black} />
+                                    <DashedLine dashWidth={5} dashGap={5} dashColor={(breakpoint.endAt < elapsedTime * 1000) ? colors.red : colors.black} />
                                 </View>
                             </View>
                         </View>
@@ -429,21 +451,22 @@ const Detail = () => {
                                 <View
                                     style={[
                                         styles.breakPointBlock,
-                                        { height: availableDuration > blockHeightThreshold ? availableDuration / blockHeightRatio : 60 },
+                                        { backgroundColor: 'transparent', paddingHorizontal: 5 },
+                                        { height: availableDuration > blockHeightThreshold ? (availableDuration / blockHeightRatio) + 20 : 80 },
                                         { justifyContent: availableDuration > blockHeightThreshold ? 'flex-start' : 'center' }
                                     ]}
                                 >
-                                    <Text style={[styles.breakPointText]}>{formatDuration(availableDuration)}</Text>
+                                    <Text style={[styles.breakPointText, { color: colors.Gray3, fontSize: 17 }]}>{formatDuration(availableDuration)} before end</Text>
                                 </View>
                             </View>
                             <View style={styles.breakPointLineContainer}>
-                                <View style={[styles.breakPointIndicator]}>
-                                    <Text style={styles.breakPointIndicatorText}>
+                                <View style={[styles.breakPointIndicator, (newTimer.duration <= elapsedTime * 1000) && { backgroundColor: colors.red }]}>
+                                    <Text style={[styles.breakPointIndicatorText, (newTimer.duration <= elapsedTime * 1000) && { color: colors.white }]}>
                                         End
                                     </Text>
                                 </View>
                                 <View style={styles.lineContainer}>
-                                    <DashedLine dashWidth={5} dashGap={5} dashColor={colors.black} />
+                                    <DashedLine dashWidth={5} dashGap={5} dashColor={(newTimer.duration <= elapsedTime * 1000) ? colors.red : colors.black} />
                                 </View>
                             </View>
                         </View>
@@ -494,19 +517,17 @@ const Detail = () => {
                     )}
                     {playMode === 'restart' && (
                         <View style={{ flex: 1, flexDirection: 'row', columnGap: 10 }}>
-                            <TouchableOpacity style={[styles.stopButton, { backgroundColor: colors.Gray1 }]} onPress={handleStop}>
-                                <FontAwesomeIcon icon={faStop} size={21} color={colors.black} />
+                            <TouchableOpacity style={[styles.stopButton, { backgroundColor: colors.Gray1 }]} onPress={handlePlay}>
+                                <FontAwesomeIcon icon={faRotateRight} size={21} color={colors.black} />
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.Gray1 }]} onPress={handlePlay}>
-                                <View style={{ transform: 'rotate(-45deg)' }} >
-                                    <FontAwesomeIcon icon={faRotateRight} size={21} color={colors.black} />
-                                </View>
+                            <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.Gray1 }]} onPress={handleStop}>
+                                <FontAwesomeIcon icon={faStop} size={21} color={colors.black} />
                             </TouchableOpacity>
                         </View>
                     )}
                 </View>
-            </View>
-        </View>
+            </View >
+        </View >
     );
 };
 

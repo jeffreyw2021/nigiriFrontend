@@ -26,7 +26,7 @@ const Add = () => {
         let id = '';
         const timers = await fetchTimers();
         const timerIds = new Set(timers.map(timer => timer.id));
-    
+
         do {
             id = '';
             for (let i = 0; i < 16; i++) {
@@ -35,7 +35,7 @@ const Add = () => {
             }
         } while (checkIfIdExists(id, timerIds));
         return id;
-    };    
+    };
     const [newTimer, setNewTimer] = useState({
         id: '',
         createdAt: Date.now(),
@@ -44,9 +44,9 @@ const Add = () => {
         vibration: 'Alarm',
         breakPoints: []
     });
-    useEffect(()=>{
+    useEffect(() => {
         console.log("newTimer:", newTimer);
-    },[newTimer])
+    }, [newTimer])
     useEffect(() => {
         const setId = async () => {
             const id = await generateRandomId();
@@ -69,6 +69,47 @@ const Add = () => {
     });
     const [durationInMilliseconds, setDurationInMilliseconds] = useState(0);
 
+    const [customizedTitle, setCustomizedTitle] = useState(false);
+    const formatDuration = (milliseconds) => {
+        const seconds = Math.floor((milliseconds / 1000) % 60);
+        const minutes = Math.floor((milliseconds / (1000 * 60)) % 60);
+        const hours = Math.floor((milliseconds / (1000 * 60 * 60)) % 24);
+
+        if (hours === 0 && minutes === 0 && seconds !== 0) {
+            return `${seconds} sec`;
+        } else if (hours === 0 && seconds !== 0 && minutes !== 0) {
+            return `${minutes} min ${seconds} sec`;
+        } else if (seconds === 0 && minutes !== 0 && hours !== 0) {
+            return `${hours} h ${minutes} min`;
+        } else if (hours === 0 && seconds === 0 && minutes !== 0) {
+            return `${minutes} min`;
+        } else if (minutes === 0 && seconds === 0 && hours !== 0) {
+            return `${hours} h`;
+        } else if (hours === 0 && minutes === 0 && seconds === 0) {
+            return `0 sec`;
+        } else {
+            return `${hours} h ${minutes} min ${seconds} sec`;
+        }
+    };
+    const isTitleInDurationFormat = (title) => {
+        const hourRegex = /(\d{1,2}) h/;
+        const minuteRegex = /(\d{1,2}) min/;
+        const secondRegex = /(\d{1,2}) sec/;
+    
+        const hourMatch = title.match(hourRegex);
+        const minuteMatch = title.match(minuteRegex);
+        const secondMatch = title.match(secondRegex);
+    
+        const hour = hourMatch ? parseInt(hourMatch[1], 10) : null;
+        const minute = minuteMatch ? parseInt(minuteMatch[1], 10) : null;
+        const second = secondMatch ? parseInt(secondMatch[1], 10) : null;
+    
+        if (hour !== null && (hour < 0 || hour > 9)) return false;
+        if (minute !== null && (minute < 0 || minute > 59)) return false;
+        if (second !== null && (second < 0 || second > 59)) return false;
+    
+        return true;
+    };
     useEffect(() => {
         console.log(duration);
         const hourInMilliseconds = duration.hour * 60 * 60 * 1000;
@@ -78,11 +119,17 @@ const Add = () => {
         setDurationInMilliseconds(durationInMilliseconds);
     }, [duration]);
     useEffect(() => {
-        setNewTimer(prevTimer => ({
-            ...prevTimer,
-            duration: durationInMilliseconds
-        }));
+        const formattedTitle = formatDuration(durationInMilliseconds);
+        const timerTitle = newTimer.title;
+        const timeout = setTimeout(() => {
+            setNewTimer(prevTimer => ({
+                ...prevTimer,
+                title: isTitleInDurationFormat(timerTitle) ? formattedTitle : timerTitle,
+                duration: durationInMilliseconds
+            }));
+        }, 500);
         console.log(durationInMilliseconds);
+        return () => clearTimeout(timeout);
     }, [durationInMilliseconds]);
 
     // ========== Vibration ========== //
@@ -131,11 +178,21 @@ const Add = () => {
         console.log(routeBreakPoints);
     }, [routeBreakPoints]);
     const handleNext = () => {
-        if(newTimer.duration === 0){
-            alert('Please set a duration for the timer.'); 
+        if (newTimer.duration === 0) {
+            alert('Please set a duration for the timer.');
             return;
         }
-        const sendTimer = newTimer;
+        let sendTimer = newTimer;
+        if (newTimer.title === '') {
+            sendTimer = {
+                ...newTimer,
+                title: formatDuration(newTimer.duration)
+            }
+            setNewTimer(prevTimer => ({
+                ...prevTimer,
+                title: formatDuration(newTimer.duration)
+            }));
+        }
         navigation.navigate('AddBreakpoint', { sendTimer });
     }
 
@@ -278,6 +335,7 @@ const Add = () => {
                                     ...prevTimer,
                                     title: text
                                 }));
+                                setCustomizedTitle(true);
                             }}
                             selectionColor={colors.darkGray}
                             value={newTimer.title}

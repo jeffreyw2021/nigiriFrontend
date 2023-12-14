@@ -3,7 +3,7 @@ import { Easing } from 'react-native';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import Home from '../screens/Home';
 import Add from '../screens/add';
-import Vibration from '../components/vibration';
+import VibrationSelect from '../components/vibration';
 import AddBreakpoint from '../screens/addBreakpoint';
 import Detail from '../screens/detail';
 import EditInfo from '../screens/editInfo';
@@ -50,7 +50,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Home" component={Home} options={{ cardStyleInterpolator: forSlideFromLeft }} />
         <Stack.Screen name="Add" component={Add} />
         <Stack.Screen name="AddBreakpoint" component={AddBreakpoint} />
-        <Stack.Screen name="Vibration" component={Vibration} options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }} />
+        <Stack.Screen name="Vibration" component={VibrationSelect} options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }} />
         <Stack.Screen name="Detail" component={Detail} />
         <Stack.Screen name="EditInfo" component={EditInfo} />
         <Stack.Screen name="Edit" component={Edit} />
