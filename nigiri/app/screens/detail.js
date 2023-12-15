@@ -11,8 +11,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faAngleLeft, faPlay, faPause, faStop, faForward, faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import * as Notifications from 'expo-notifications';
 import { formatDuration, formatDurationToNumeric } from '../helper/formatDuration';
-// import * as BackgroundFetch from 'expo-background-fetch';
-// import * as TaskManager from 'expo-task-manager';
 
 const Detail = () => {
 
