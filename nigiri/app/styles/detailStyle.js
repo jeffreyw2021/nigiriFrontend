@@ -256,7 +256,27 @@ const styles = StyleSheet.create({
     countdownText: {
         fontSize: fontSize.major,
         color: 'white',
-    }
+    },
+
+    progressBarContainer:{
+        width: '100%',
+        height: '100%',
+        marginTop: 10,
+        paddingBottom: 80,
+        justifyContent: 'center',
+        paddingHorizontal: 30,
+    },
+    progressBar:{
+        width: '100%',
+        height: 10,
+        backgroundColor: colors.smokeWhite,
+        borderRadius: 10,
+    },
+    progressBarFill:{
+        height: 10,
+        backgroundColor: colors.red,
+        borderRadius: 10,
+    },
     
 });
 

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "nigiri",
+    "name": "Nigiri - Interval Timer",
     "slug": "nigiri",
-    "version": "1.0.0",
+    "version": "0.1.2",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "light",

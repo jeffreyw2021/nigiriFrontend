@@ -128,7 +128,7 @@ const Detail = () => {
 
     const vibrationPoints = useMemo(() => {
         const points = newTimer.breakPoints.map(breakpoint => breakpoint.endAt);
-        if(availableDuration > 0){
+        if (availableDuration > 0) {
             points.push(newTimer.duration);
         }
         return points;
@@ -152,11 +152,11 @@ const Detail = () => {
             content: notificationContent,
             trigger: { seconds: point / 1000 },
         }));
-    
+
         for (const config of notificationConfigs) {
             await Notifications.scheduleNotificationAsync(config);
         }
-    };    
+    };
     const cancelAllScheduledNotifications = async () => {
         await Notifications.cancelAllScheduledNotificationsAsync();
     };
@@ -193,11 +193,11 @@ const Detail = () => {
                     trigger: { seconds: remainingTime / 1000 },
                 };
             });
-    
+
             for (const config of notificationConfigs) {
                 await Notifications.scheduleNotificationAsync(config);
             }
-    
+
             timerRef.current = setInterval(() => {
                 setElapsedTime(prevElapsedTime => prevElapsedTime + 1000);
             }, 1000);
@@ -271,26 +271,35 @@ const Detail = () => {
                                 <View
                                     style={[
                                         styles.breakPointBlock,
+                                        (breakpoint.startAt < elapsedTime)
+                                        && (breakpoint.endAt < elapsedTime
+                                            ? { backgroundColor: colors.smokeWhite }
+                                            : { backgroundColor: colors.lightRed }),
                                         { height: breakpoint.duration > blockHeightThreshold ? breakpoint.duration / blockHeightRatio : 60 },
                                         { justifyContent: breakpoint.duration > blockHeightThreshold ? 'flex-start' : 'center' }
                                     ]}
                                 >
                                     <Text style={[
                                         styles.breakPointText,
+                                        (breakpoint.startAt < elapsedTime)
+                                        && (breakpoint.endAt < elapsedTime
+                                            ? { color: colors.black }
+                                            : { color: colors.red })
                                     ]}>{formatDuration(breakpoint.duration)}</Text>
                                 </View>
                             </View>
                             <View style={styles.breakPointLineContainer}>
-                                <View style={[styles.breakPointIndicator,
-                                ]}>
+                                <View style={[styles.breakPointIndicator, (breakpoint.endAt < elapsedTime) && { backgroundColor: colors.red }]}>
                                     {breakpoint.endAt >= newTimer.duration ?
                                         (
                                             <Text style={[styles.breakPointIndicatorText,
+                                            (breakpoint.endAt < elapsedTime) && { color: colors.white }
                                             ]}>
                                                 End
                                             </Text>
                                         ) : (
                                             <Text style={[styles.breakPointIndicatorText,
+                                            (breakpoint.endAt < elapsedTime) && { color: colors.white }
                                             ]}>
                                                 {formatDuration(breakpoint.endAt)}
                                             </Text>
@@ -298,9 +307,7 @@ const Detail = () => {
                                     }
                                 </View>
                                 <View style={styles.lineContainer}>
-                                    <DashedLine dashWidth={5} dashGap={5} dashColor={
-                                        colors.black
-                                    } />
+                                    <DashedLine dashWidth={5} dashGap={5} dashColor={(breakpoint.endAt < elapsedTime) ? colors.red : colors.black} />
                                 </View>
                             </View>
                         </View>
@@ -320,15 +327,13 @@ const Detail = () => {
                                 </View>
                             </View>
                             <View style={styles.breakPointLineContainer}>
-                                <View style={[styles.breakPointIndicator,
-                                ]}>
-                                    <Text style={[styles.breakPointIndicatorText,
-                                    ]}>
+                                <View style={[styles.breakPointIndicator, (newTimer.duration <= elapsedTime) && { backgroundColor: colors.red }]}>
+                                    <Text style={[styles.breakPointIndicatorText, (newTimer.duration <= elapsedTime) && { color: colors.white }]}>
                                         End
                                     </Text>
                                 </View>
                                 <View style={styles.lineContainer}>
-                                    <DashedLine dashWidth={5} dashGap={5} dashColor={colors.black} />
+                                    <DashedLine dashWidth={5} dashGap={5} dashColor={(newTimer.duration <= elapsedTime) ? colors.red : colors.black} />
                                 </View>
                             </View>
                         </View>
@@ -337,14 +342,20 @@ const Detail = () => {
             </ScrollView>
 
             <View style={styles.bottomContainer}>
-                {playMode !== 'stop' &&
+                {playMode !== '' &&
                     (<View style={styles.editingContainer}>
-                        <View style={[
-                            styles.elapsedTimeContainer,
-                        ]}>
-                            <Text style={styles.elapsedTimeText}>
-                                {formatDurationToNumeric(elapsedTime)}
-                            </Text>
+                        <View style={[styles.elapsedTimeContainer]}>
+                            <Text style={styles.elapsedTimeText}>{formatDurationToNumeric(elapsedTime)}</Text>
+                        </View>
+                        <View style={styles.progressBarContainer}>
+                            <View style={[styles.progressBar,
+                            // elapsedTime > 0 && { backgroundColor: colors.lightRed }
+                            ]}>
+                                <View
+                                    style={[styles.progressBarFill,
+                                    { width: `${(elapsedTime / newTimer.duration) * 100}%` }
+                                    ]}></View>
+                            </View>
                         </View>
                     </View>)}
                 <View style={styles.bottomButtonContainer}>
