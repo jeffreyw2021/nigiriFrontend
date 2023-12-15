@@ -19,3 +19,18 @@ export const formatDuration = (milliseconds) => {
         return `${hours} h ${minutes} min ${seconds} sec`;
     }
 };
+
+export const formatDurationToNumeric = (milliseconds, cs = false) => {
+    if (cs) {
+        const centiseconds = Math.floor((milliseconds / 10) % 100).toString().padStart(2, '0');
+        const seconds = Math.floor((milliseconds / 1000) % 60).toString().padStart(2, '0');
+        const minutes = Math.floor((milliseconds / (1000 * 60)) % 60).toString().padStart(2, '0');
+        const hours = Math.floor((milliseconds / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+        return `${hours}:${minutes}:${seconds}:${centiseconds}`;
+    }else{
+        const seconds = Math.floor((milliseconds / 1000) % 60).toString().padStart(2, '0');
+        const minutes = Math.floor((milliseconds / (1000 * 60)) % 60).toString().padStart(2, '0');
+        const hours = Math.floor((milliseconds / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+        return `${hours}:${minutes}:${seconds}`;
+    }
+};   

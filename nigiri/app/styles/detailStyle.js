@@ -171,7 +171,6 @@ const styles = StyleSheet.create({
     elapsedTimeContainer:{
         paddingLeft: 30,
         paddingTop: 15,
-        opacity: 0
     },
     elapsedTimeText:{
         color: colors.darkGray,

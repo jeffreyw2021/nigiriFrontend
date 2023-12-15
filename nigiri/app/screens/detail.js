@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Vibration } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Vibration, AppState } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import colors from '../styles/colors';
 import styles from '../styles/detailStyle';
@@ -9,6 +9,11 @@ import vibrationPatterns from '../components/vibrationCollection';
 import Triangle from '../components/triangle';
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faAngleLeft, faPlay, faPause, faStop, faForward, faRotateRight } from "@fortawesome/free-solid-svg-icons";
+import * as Notifications from 'expo-notifications';
+import { formatDuration, formatDurationToNumeric } from '../helper/formatDuration';
+import * as BackgroundFetch from 'expo-background-fetch';
+import * as TaskManager from 'expo-task-manager';
+import PushNotification from 'react-native-push-notification';
 
 const Detail = () => {
 
@@ -72,43 +77,6 @@ const Detail = () => {
         }
     }, [routeNewTimer, timers]);
 
-
-    const prevBreakPointsRef = useRef();
-    const didDurationChange = (currentBreakpoints, prevBreakpoints) => {
-        if (currentBreakpoints.length !== prevBreakpoints.length) return true;
-
-        for (let i = 0; i < currentBreakpoints.length; i++) {
-            if (currentBreakpoints[i].duration !== prevBreakpoints[i].duration) {
-                return true;
-            }
-        }
-        return false;
-    }
-    useEffect(() => {
-        const prevBreakPoints = prevBreakPointsRef.current;
-
-        if (didDurationChange(newTimer.breakPoints, prevBreakPoints || [])) {
-            let cumulativeStartAt = 0;
-            const updatedBreakpoints = newTimer.breakPoints.map(breakpoint => {
-                const updatedBreakpoint = {
-                    ...breakpoint,
-                    startAt: cumulativeStartAt,
-                    endAt: cumulativeStartAt + breakpoint.duration
-                };
-                cumulativeStartAt += breakpoint.duration;
-                return updatedBreakpoint;
-            });
-
-            setNewTimer(prevTimer => ({
-                ...prevTimer,
-                breakPoints: updatedBreakpoints
-            }));
-        }
-
-        // Update the ref with the current breakpoints
-        prevBreakPointsRef.current = newTimer.breakPoints;
-    }, [newTimer.breakPoints]);
-
     // ========== UI ========== //
     const [totalDuration, setTotalDuration] = useState("");
     useEffect(() => {
@@ -116,280 +84,177 @@ const Detail = () => {
         totalDuration = formatDuration(newTimer.duration);
         setTotalDuration(totalDuration);
     }, [newTimer]);
-    const formatDuration = (milliseconds) => {
-        const seconds = Math.floor((milliseconds / 1000) % 60);
-        const minutes = Math.floor((milliseconds / (1000 * 60)) % 60);
-        const hours = Math.floor((milliseconds / (1000 * 60 * 60)) % 24);
-
-        if (hours === 0 && minutes === 0 && seconds !== 0) {
-            return `${seconds} sec`;
-        } else if (hours === 0 && seconds !== 0 && minutes !== 0) {
-            return `${minutes} min ${seconds} sec`;
-        } else if (seconds === 0 && minutes !== 0 && hours !== 0) {
-            return `${hours} h ${minutes} min`;
-        } else if (hours === 0 && seconds === 0 && minutes !== 0) {
-            return `${minutes} min`;
-        } else if (minutes === 0 && seconds === 0 && hours !== 0) {
-            return `${hours} h`;
-        } else if (hours === 0 && minutes === 0 && seconds === 0) {
-            return `0 sec`;
-        } else {
-            return `${hours} h ${minutes} min ${seconds} sec`;
-        }
-    };
-    const formatDurationToNumeric = (milliseconds) => {
-        let seconds = Math.floor((milliseconds / 1000) % 60);
-        let minutes = Math.floor((milliseconds / (1000 * 60)) % 60);
-        const hours = Math.floor((milliseconds / (1000 * 60 * 60)) % 24);
-
-        if (minutes < 10) {
-            minutes = '0' + minutes;
-        }
-        if (seconds < 10) {
-            seconds = '0' + seconds;
-        }
-        return `${hours}:${minutes}:${seconds}`;
-    };
-
-    // ========== Navigation ========== //
-    const handleBack = () => {
-        // Filter out breakpoints with a duration of 0
-        const savedBreakpoints = newTimer.breakPoints.filter(breakPoint => breakPoint.duration !== 0);
-        navigation.navigate('Home');
-    }
-    const handleEdit = () => {
-        console.log('sending timer:', newTimer);
-        navigation.navigate('EditInfo', { timer: newTimer });
-    }
-
-    // ========== Time Picker ========== //
     const availableDuration = useMemo(() => {
         const totalBreakpointsDuration = newTimer.breakPoints.reduce((acc, bp) => acc + bp.duration, 0);
         return newTimer.duration - totalBreakpointsDuration;
     }, [newTimer]);
 
-    // ========== Play ========== //
-    const [playMode, setplayMode] = useState('stop');
-    const handlePlay = () => {
-        setplayMode('play');
+    // ========== Navigation ========== //
+    const handleBack = () => {
+        navigation.navigate('Home');
     }
-    const handlePause = () => {
-        setplayMode('pause');
-    }
-    const handleStop = () => {
-        setplayMode('stop');
-    }
-    const handleContinue = () => {
-        setplayMode('continue');
+    const handleEdit = () => {
+        console.log('DETAIL - sending timer:', newTimer);
+        navigation.navigate('EditInfo', { timer: newTimer });
     }
 
-    const timerDurationCollection = useMemo(() => {
-        const durations = newTimer.breakPoints.map(breakpoint => breakpoint.duration);
-        if (availableDuration > 0) {
-            durations.push(availableDuration);
-        }
-        return durations;
-    }, [newTimer.breakPoints, availableDuration]);
+    // ========== Play mode ========== //
     const [elapsedTime, setElapsedTime] = useState(0);
-    const pattern = vibrationPatterns[newTimer.vibration] || vibrationPatterns['Alarm'];
-    const [countdown, setCountdown] = useState(null);
-    const [scrollPosition, setScrollPosition] = useState(0);
+    const [playMode, setPlayMode] = useState('stop');
+    const [appState, setAppState] = useState(AppState.currentState);
     useEffect(() => {
-        if (elapsedTime >= (newTimer.duration / 1000)) {
-            setplayMode('restart');
-        }
-    }, [elapsedTime, newTimer.duration]);
-
-    useEffect(() => {
-        let intervalId;
-        let countdownIntervalId;
-
-        // Calculate the initial scroll position after countdown
-        const newTimerDurationSeconds = Math.floor(newTimer.duration / 1000);
-        const basicScrollUnit = ((progressLineTotalLength) / newTimerDurationSeconds);
-        const initialScrollPosition = basicScrollUnit;
-
-        const startCounting = () => {
-            setElapsedTime(elapsed => {
-                // Update scroll position
-                let newScrollPosition = 0;
-                if (elapsed > 0) {
-                    newScrollPosition = initialScrollPosition + ((elapsed - 1) * basicScrollUnit);
-                } else {
-                    newScrollPosition = initialScrollPosition + (elapsed * basicScrollUnit);
+        const handleAppStateChange = async (nextAppState) => {
+            if (appState.match(/inactive|background/) && nextAppState === 'active') {
+                const lastStartedTime = await AsyncStorage.getItem('startedElapseTime');
+                if (lastStartedTime) {
+                    const currentElapsedTime = Date.now() - parseInt(lastStartedTime);
+                    console.log('currentElapsedTime:', formatDurationToNumeric(currentElapsedTime));
+                    setElapsedTime(currentElapsedTime);
                 }
-                console.log('newScrollPosition:', newScrollPosition);
-                setScrollPosition(newScrollPosition);
-
-                if (scrollViewRef.current) {
-                    scrollViewRef.current.scrollTo({
-                        x: newScrollPosition,
-                        animated: true
-                    });
-                }
-
-                if (elapsed >= timerDurationCollection.reduce((a, b) => a + b, 0) / 1000) {
-                    clearInterval(intervalId);
-                    setplayMode('restart');
-                }
-
-                return elapsed + 1;
-            });
+                console.log('lastStartedTime:', lastStartedTime);
+                console.log('App has come to the foreground!');
+            } else if (nextAppState.match(/inactive|background/)) {
+                console.log('App has gone to the background!');
+            }
+            setAppState(nextAppState);
         };
 
-        switch (playMode) {
-            case 'play':
-                // Clear any existing intervals
-                clearInterval(intervalId);
-                clearInterval(countdownIntervalId);
-                setCountdown(3); // 3-second countdown
-
-                // Reset elapsed time and directly reset the ScrollView position
-                setElapsedTime(0);
-                if (scrollViewRef.current) {
-                    scrollViewRef.current.scrollTo({ x: 0, animated: false });
-                }
-
-                countdownIntervalId = setInterval(() => {
-                    setCountdown(prevCountdown => {
-                        if (prevCountdown === 1) {
-                            clearInterval(countdownIntervalId);
-                            intervalId = setInterval(startCounting, 1000);
-                            return null;
-                        }
-                        return prevCountdown - 1;
-                    });
-                }, 1000);
-                break;
-            case 'pause':
-                // Pause the ticking and scrolling
-                clearInterval(intervalId);
-                clearInterval(countdownIntervalId);
-                break;
-            case 'stop':
-                // Stop and reset everything
-                clearInterval(intervalId);
-                clearInterval(countdownIntervalId);
-                setCountdown(null);
-                setElapsedTime(0);
-                if (scrollViewRef.current) {
-                    scrollViewRef.current.scrollTo({ x: 0, animated: false });
-                }
-                break;
-            case 'restart':
-                // Behave the same as pause
-                clearInterval(intervalId);
-                clearInterval(countdownIntervalId);
-                break;
-            case 'continue':
-                // Continue from where it was paused
-                if (countdown === null) {
-                    // If countdown is not active, continue the main timer
-                    intervalId = setInterval(startCounting, 1000);
-                } else {
-                    // If countdown is active, continue the countdown
-                    countdownIntervalId = setInterval(() => {
-                        setCountdown(prevCountdown => {
-                            if (prevCountdown === 1) {
-                                clearInterval(countdownIntervalId);
-                                intervalId = setInterval(startCounting, 1000);
-                                return null;
-                            }
-                            return prevCountdown - 1;
-                        });
-                    }, 1000);
-                }
-                break;
-        }
+        const subscription = AppState.addEventListener('change', handleAppStateChange);
 
         return () => {
-            clearInterval(intervalId);
-            clearInterval(countdownIntervalId);
+            subscription.remove();
         };
+    }, [appState]);
+    const timerRef = useRef(null);
 
-    }, [playMode, timerDurationCollection, vibrationPoints, pattern, newTimer.duration, progressLineWidth]);
-
-    // const [showTickPointer, setShowTickPointer] = useState(false);
-    useEffect(() => {
-        if ((vibrationPoints.includes(elapsedTime * 1000))) {
-            Vibration.vibrate(pattern);
-        }
-        if ((elapsedTime * 1000) >= newTimer.duration) {
-            Vibration.vibrate(4500);
-        }
-    }, [elapsedTime, vibrationPoints, pattern]);
     const vibrationPoints = useMemo(() => {
-        const vibrations = newTimer.breakPoints.map(breakpoint => breakpoint.endAt);
-        return vibrations;
+        const points = newTimer.breakPoints.map(breakpoint => breakpoint.endAt);
+        if(availableDuration > 0){
+            points.push(newTimer.duration);
+        }
+        return points;
     }, [newTimer.breakPoints]);
-
-    // ========== Render ========== //
-    const progressLineWidth = 2000;
-    const [progressLineTotalLength, setProgressLineTotalLength] = useState(0);
-    const scrollViewRef = useRef(null);
-    const lineGap = 6;
-    const lineWidth = 2;
     useEffect(() => {
         if (vibrationPoints && vibrationPoints.length > 0) {
-            // Calculate the total number of lines
-            const totalLines = Math.ceil(progressLineWidth / lineGap);
-
-            // Calculate the total length
-            const totalLength = totalLines * lineWidth + (totalLines - 1) * lineGap;
-            setProgressLineTotalLength(totalLength);
+            AsyncStorage.removeItem('currentVibrationPoints');
+            AsyncStorage.setItem('currentVibrationPoints', JSON.stringify(vibrationPoints));
+        } else {
+            AsyncStorage.removeItem('currentVibrationPoints');
         }
-    }, [vibrationPoints, lineGap, lineWidth, progressLineWidth]);
+    }, [vibrationPoints])
 
-    const progressTimeLine = (length, lineGap, lineWidth, lineHeight, elapsedTime) => {
+    const [notificationContent, setNotificationContent] = useState({
+        title: "Timer Alert",
+        body: "Vibration point reached!",
+        sound: '../assets/sounds/ring_bell.wav',
+    });
+    const scheduleNotificationsForVibrationPoints = () => {
+        vibrationPoints.forEach(point => {
+            PushNotification.localNotificationSchedule({
+                title: "Timer Alert",
+                message: "Vibration point reached!",
+                date: new Date(Date.now() + point),
+                soundName: "default",
+            });
+        });
+    };
 
-        if (vibrationPoints && vibrationPoints.length > 0) {
-            const lines = [];
-
-            // Calculate the total number of lines
-            const totalLines = Math.ceil(length / lineGap);
-
-            // Calculate milliseconds per line
-            const msPerLine = newTimer.duration / totalLines;
-
-            for (let i = 0; i < totalLines; i++) {
-                const startTimeForThisLine = msPerLine * i;
-                const endTimeForThisLine = startTimeForThisLine + msPerLine;
-
-                let isVibrationLine = vibrationPoints.some(point =>
-                    point >= startTimeForThisLine && point < endTimeForThisLine
-                );
-                let hasPassed = elapsedTime * 1000 >= startTimeForThisLine;
-
-                if (i === totalLines - 1) {
-                    isVibrationLine = true;
-                }
-
-                lines.push(
-                    <View
-                        key={i}
-                        style={{
-                            width: lineWidth,
-                            height: isVibrationLine ? lineHeight + 30 : lineHeight,
-                            backgroundColor: (isVibrationLine || hasPassed) ? colors.red : colors.Gray3,
-                            marginLeft: i === 0 ? 0 : lineGap,
-                        }}
-                    />
-                );
+    const cancelAllScheduledNotifications = () => {
+        PushNotification.cancelAllLocalNotifications();
+    };
+    const startStopwatch = () => {
+        if (!timerRef.current) {
+            scheduleNotificationsForVibrationPoints();
+            AsyncStorage.removeItem('startedElapseTime');
+            AsyncStorage.setItem('startedElapseTime', Date.now().toString());
+            console.log('startedElapseTime:', Date.now().toString());
+            timerRef.current = setInterval(() => {
+                setElapsedTime(prevElapsedTime => prevElapsedTime + 1000);
+            }, 1000);
+        }
+    };
+    const [storedElapsedTime, setStoredElapsedTime] = useState(null);
+    useEffect(() => {
+        console.log('storedElapsedTime:', storedElapsedTime);
+    }, [storedElapsedTime])
+    const pauseStopwatch = async () => {
+        const startedElapseTime = await AsyncStorage.getItem('startedElapseTime');
+        setStoredElapsedTime(startedElapseTime);
+        AsyncStorage.removeItem('startedElapseTime');
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+        cancelAllScheduledNotifications();
+    };
+    const continueStopwatch = async () => {
+        if (!timerRef.current) {
+            const remainingVibrationPoints = vibrationPoints.filter(point => point > elapsedTime);
+            const notificationConfigs = remainingVibrationPoints.map(point => {
+                const remainingTime = point - elapsedTime;
+                return {
+                    content: notificationContent,
+                    trigger: { seconds: remainingTime / 1000 },
+                };
+            });
+    
+            for (const config of notificationConfigs) {
+                await Notifications.scheduleNotificationAsync(config);
             }
-            return lines;
+    
+            timerRef.current = setInterval(() => {
+                setElapsedTime(prevElapsedTime => prevElapsedTime + 1000);
+            }, 1000);
+        }
+    };
+    const resetStopwatch = async () => {
+        AsyncStorage.removeItem('startedElapseTime');
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+        setElapsedTime(0);
+        cancelAllScheduledNotifications();
+    };
+
+    const vibrationPointsInSeconds = vibrationPoints.map(point => Math.floor(point / 1000));
+    const durationInSeconds = Math.floor(newTimer.duration / 1000);
+    useEffect(() => {
+
+        const elapsedTimeInSeconds = Math.floor(elapsedTime / 1000);
+        const isVibrationTime = vibrationPointsInSeconds.includes(elapsedTimeInSeconds);
+
+        if (isVibrationTime) {
+            Vibration.vibrate(vibrationPatterns[newTimer.vibration]);
+        }
+        if (elapsedTimeInSeconds >= durationInSeconds) {
+            setElapsedTime(newTimer.duration);
+            setPlayMode('restart');
+            pauseStopwatch();
+        }
+
+        console.log('elapsedTime:', elapsedTime);
+        console.log('elapsedTime:', formatDurationToNumeric(elapsedTime));
+    }, [elapsedTime, vibrationPoints, newTimer.vibration]);
+
+
+    const handleModeChange = (mode) => {
+        setPlayMode(mode);
+        console.log('playMode:', mode);
+        if (mode === 'play') {
+            resetStopwatch();
+            startStopwatch();
+        } else if (mode === 'continue') {
+            continueStopwatch();
+        } else if (mode === 'pause') {
+            pauseStopwatch();
+        } else if (mode === 'stop') {
+            resetStopwatch();
         }
     };
 
+    // ========== Render ========== //
     const blockHeightThreshold = 300000;
     const blockHeightRatio = 5000;
 
     return (
         <View style={styles.container}>
-            {countdown !== null && (
-                <View style={styles.fullScreenOverlay}>
-                    <Text style={styles.countdownText}>{countdown}</Text>
-                </View>
-            )}
             <View style={styles.breakpointTitleContainer}>
                 <TouchableOpacity style={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center' }} onPress={handleBack}>
                     <FontAwesomeIcon icon={faAngleLeft} size={22} color={colors.Gray3} />
@@ -408,39 +273,36 @@ const Detail = () => {
                                 <View
                                     style={[
                                         styles.breakPointBlock,
-                                        (breakpoint.startAt < elapsedTime * 1000)
-                                        && (breakpoint.endAt < elapsedTime * 1000
-                                            ? { backgroundColor: colors.smokeWhite }
-                                            : { backgroundColor: colors.lightRed }),
                                         { height: breakpoint.duration > blockHeightThreshold ? breakpoint.duration / blockHeightRatio : 60 },
                                         { justifyContent: breakpoint.duration > blockHeightThreshold ? 'flex-start' : 'center' }
                                     ]}
                                 >
                                     <Text style={[
                                         styles.breakPointText,
-                                        (breakpoint.startAt < elapsedTime * 1000)
-                                        && (breakpoint.endAt < elapsedTime * 1000
-                                            ? { color: colors.black }
-                                            : { color: colors.red })
                                     ]}>{formatDuration(breakpoint.duration)}</Text>
                                 </View>
                             </View>
                             <View style={styles.breakPointLineContainer}>
-                                <View style={[styles.breakPointIndicator, (breakpoint.endAt < elapsedTime * 1000) && { backgroundColor: colors.red }]}>
+                                <View style={[styles.breakPointIndicator,
+                                ]}>
                                     {breakpoint.endAt >= newTimer.duration ?
                                         (
-                                            <Text style={[styles.breakPointIndicatorText, (breakpoint.endAt < elapsedTime * 1000) && { color: colors.white }]}>
+                                            <Text style={[styles.breakPointIndicatorText,
+                                            ]}>
                                                 End
                                             </Text>
                                         ) : (
-                                            <Text style={[styles.breakPointIndicatorText, (breakpoint.endAt < elapsedTime * 1000) && { color: colors.white }]}>
+                                            <Text style={[styles.breakPointIndicatorText,
+                                            ]}>
                                                 {formatDuration(breakpoint.endAt)}
                                             </Text>
                                         )
                                     }
                                 </View>
                                 <View style={styles.lineContainer}>
-                                    <DashedLine dashWidth={5} dashGap={5} dashColor={(breakpoint.endAt < elapsedTime * 1000) ? colors.red : colors.black} />
+                                    <DashedLine dashWidth={5} dashGap={5} dashColor={
+                                        colors.black
+                                    } />
                                 </View>
                             </View>
                         </View>
@@ -460,13 +322,15 @@ const Detail = () => {
                                 </View>
                             </View>
                             <View style={styles.breakPointLineContainer}>
-                                <View style={[styles.breakPointIndicator, (newTimer.duration <= elapsedTime * 1000) && { backgroundColor: colors.red }]}>
-                                    <Text style={[styles.breakPointIndicatorText, (newTimer.duration <= elapsedTime * 1000) && { color: colors.white }]}>
+                                <View style={[styles.breakPointIndicator,
+                                ]}>
+                                    <Text style={[styles.breakPointIndicatorText,
+                                    ]}>
                                         End
                                     </Text>
                                 </View>
                                 <View style={styles.lineContainer}>
-                                    <DashedLine dashWidth={5} dashGap={5} dashColor={(newTimer.duration <= elapsedTime * 1000) ? colors.red : colors.black} />
+                                    <DashedLine dashWidth={5} dashGap={5} dashColor={colors.black} />
                                 </View>
                             </View>
                         </View>
@@ -477,50 +341,41 @@ const Detail = () => {
             <View style={styles.bottomContainer}>
                 {playMode !== 'stop' &&
                     (<View style={styles.editingContainer}>
-                        <View style={[styles.elapsedTimeContainer, elapsedTime > 0 && { opacity: 1 }]}>
+                        <View style={[
+                            styles.elapsedTimeContainer,
+                        ]}>
                             <Text style={styles.elapsedTimeText}>
-                                {formatDurationToNumeric(elapsedTime * 1000)}
+                                {formatDurationToNumeric(elapsedTime)}
                             </Text>
                         </View>
-                        <ScrollView
-                            ref={scrollViewRef}
-                            contentContainerStyle={[styles.progressLineContainer, { paddingRight: 2000 }]}
-                            horizontal={true}
-                            showsHorizontalScrollIndicator={false}
-                            scrollEnabled={false}
-                        >
-                            <View style={styles.progressLineSrollArea}>
-                                {progressTimeLine(progressLineWidth, lineGap, lineWidth, 40, elapsedTime)}
-                            </View>
-                        </ScrollView>
                     </View>)}
                 <View style={styles.bottomButtonContainer}>
                     {playMode === 'stop' && (
-                        <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.black }]} onPress={handlePlay}>
+                        <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.black }]} onPress={() => handleModeChange('play')}>
                             <FontAwesomeIcon icon={faPlay} size={21} color={colors.white} />
                         </TouchableOpacity>
                     )}
                     {(playMode === 'play' || playMode === 'continue') && (
-                        <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.lightRed }]} onPress={handlePause}>
+                        <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.lightRed }]} onPress={() => handleModeChange('pause')}>
                             <FontAwesomeIcon icon={faPause} size={21} color={colors.red} />
                         </TouchableOpacity>
                     )}
                     {playMode === 'pause' && (
                         <View style={{ flex: 1, flexDirection: 'row', columnGap: 10 }}>
-                            <TouchableOpacity style={[styles.stopButton, { backgroundColor: colors.Gray1 }]} onPress={handleStop}>
+                            <TouchableOpacity style={[styles.stopButton, { backgroundColor: colors.Gray1 }]} onPress={() => handleModeChange('stop')}>
                                 <FontAwesomeIcon icon={faStop} size={21} color={colors.black} />
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.black }]} onPress={handleContinue}>
+                            <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.black }]} onPress={() => handleModeChange('continue')}>
                                 <FontAwesomeIcon icon={faForward} size={21} color={colors.white} />
                             </TouchableOpacity>
                         </View>
                     )}
                     {playMode === 'restart' && (
                         <View style={{ flex: 1, flexDirection: 'row', columnGap: 10 }}>
-                            <TouchableOpacity style={[styles.stopButton, { backgroundColor: colors.Gray1 }]} onPress={handlePlay}>
+                            <TouchableOpacity style={[styles.stopButton, { backgroundColor: colors.Gray1 }]} onPress={() => handleModeChange('play')}>
                                 <FontAwesomeIcon icon={faRotateRight} size={21} color={colors.black} />
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.Gray1 }]} onPress={handleStop}>
+                            <TouchableOpacity style={[styles.bottomButton, { backgroundColor: colors.Gray1 }]} onPress={() => handleModeChange('stop')}>
                                 <FontAwesomeIcon icon={faStop} size={21} color={colors.black} />
                             </TouchableOpacity>
                         </View>

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "nigiri",
+    "name": "Nigiri - Interval Timer",
     "slug": "nigiri",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.zw.2020.nigiri"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +26,17 @@
     },
     "web": {
       "favicon": "./app/assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7e1cd607-b7d6-436f-9ef2-49dae2f863c8"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7e1cd607-b7d6-436f-9ef2-49dae2f863c8"
     }
   }
 }

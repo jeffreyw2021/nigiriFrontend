@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     },
     timersList: {
         paddingTop: 10,
-        width: '100%',
+        width: width - 50,
         flexDirection: 'row',
         columnGap: 10,
         rowGap: 10,

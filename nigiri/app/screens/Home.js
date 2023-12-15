@@ -64,7 +64,7 @@ const Home = () => {
     const [detailTimer, setDetailTimer] = useState(null);
     useEffect(() => {
         if (detailTimer) {
-            // console.log("sending detail timer to Detail screen:", detailTimer);
+            console.log("HOME - sending detail timer to Detail screen:", detailTimer);
             navigation.navigate('Detail', { timer: detailTimer });
         }
     }, [detailTimer]);
@@ -123,7 +123,6 @@ const Home = () => {
                                                 setSelectedTimers([...selectedTimers, timer.id]);
                                             }
                                         } else {
-                                            console.log('setting detail timer:', timer);
                                             setDetailTimer(timer);
                                         }
                                     }}>
