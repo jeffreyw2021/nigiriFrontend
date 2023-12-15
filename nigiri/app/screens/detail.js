@@ -11,7 +11,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faAngleLeft, faPlay, faPause, faStop, faForward, faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import * as Notifications from 'expo-notifications';
 import { formatDuration, formatDurationToNumeric } from '../helper/formatDuration';
-import PushNotification from 'react-native-push-notification';
+// import * as BackgroundFetch from 'expo-background-fetch';
+// import * as TaskManager from 'expo-task-manager';
 
 const Detail = () => {
 
@@ -146,19 +147,18 @@ const Detail = () => {
         body: "Vibration point reached!",
         sound: '../assets/sounds/ring_bell.wav',
     });
-    const scheduleNotificationsForVibrationPoints = () => {
-        vibrationPoints.forEach(point => {
-            PushNotification.localNotificationSchedule({
-                title: "Timer Alert",
-                message: "Vibration point reached!",
-                date: new Date(Date.now() + point),
-                soundName: "default",
-            });
-        });
-    };
-
-    const cancelAllScheduledNotifications = () => {
-        PushNotification.cancelAllLocalNotifications();
+    const scheduleNotificationsForVibrationPoints = async () => {
+        const notificationConfigs = vibrationPoints.map(point => ({
+            content: notificationContent,
+            trigger: { seconds: point / 1000 },
+        }));
+    
+        for (const config of notificationConfigs) {
+            await Notifications.scheduleNotificationAsync(config);
+        }
+    };    
+    const cancelAllScheduledNotifications = async () => {
+        await Notifications.cancelAllScheduledNotificationsAsync();
     };
     const startStopwatch = () => {
         if (!timerRef.current) {
